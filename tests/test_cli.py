@@ -46,7 +46,7 @@ def test_init_and_show(day_env, monkeypatch):
     out = _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     assert "Created" in out
     out = _run(day_env, ["show", "--date", "2026-03-17"], monkeypatch)
-    assert "2026-03-17" in out
+    assert "Tuesday, Mar 17" in out
 
 
 def test_init_with_profile_override(day_env, monkeypatch):
@@ -171,10 +171,10 @@ def test_music_shortcut(day_env, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_week(day_env, monkeypatch):
-    today = date.today().isoformat()
-    _run(day_env, ["init", "--date", today], monkeypatch)
+    today = date.today()
+    _run(day_env, ["init", "--date", today.isoformat()], monkeypatch)
     out = _run(day_env, ["week"], monkeypatch)
-    assert today in out
+    assert today.strftime("%m/%d") in out
     assert "DATE" in out
 
 
@@ -187,15 +187,15 @@ def test_history_with_data(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-01-01"], monkeypatch)
     _run(day_env, ["init", "--date", "2026-01-02"], monkeypatch)
     out = _run(day_env, ["history"], monkeypatch)
-    assert "2026-01-01" in out
-    assert "2026-01-02" in out
+    assert "01/01" in out
+    assert "01/02" in out
 
 
 def test_summary(day_env, monkeypatch):
-    today = date.today().isoformat()
-    _run(day_env, ["init", "--date", today], monkeypatch)
+    today = date.today()
+    _run(day_env, ["init", "--date", today.isoformat()], monkeypatch)
     out = _run(day_env, ["summary"], monkeypatch)
-    assert today in out
+    assert today.strftime("%m/%d") in out
 
 
 # ---------------------------------------------------------------------------
