@@ -74,6 +74,19 @@ day init --profile saturday_show
 
 Available profiles: `weekday`, `friday`, `saturday_show`, `saturday_no_show`, `sunday`
 
+### Themes
+
+Output is colorized using the Dracula palette by default. Switch themes with:
+
+```bash
+day config theme              # View current theme
+day config theme nord         # Switch to Nord
+```
+
+Available themes: `dracula`, `catppuccin`, `gruvbox`, `nord`, `mono`
+
+Theme preference is saved to `~/.dayctl/config.json`.
+
 ### Date targeting
 
 All commands accept `--date` with a `YYYY-MM-DD` value, `today`, or `yesterday`:

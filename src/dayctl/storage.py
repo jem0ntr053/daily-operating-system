@@ -47,3 +47,24 @@ def list_days() -> list[str]:
     """Return sorted list of YYYY-MM-DD strings for all saved day files."""
     ensure_dirs()
     return sorted(p.stem for p in DAYS_DIR.glob("*.json"))
+
+
+# ---------------------------------------------------------------------------
+# Config (theme, etc.)
+# ---------------------------------------------------------------------------
+
+CONFIG_PATH = DATA_DIR / "config.json"
+
+
+def load_config() -> dict:
+    """Load user config from ~/.dayctl/config.json."""
+    ensure_dirs()
+    if not CONFIG_PATH.exists():
+        return {}
+    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+def save_config(config: dict) -> None:
+    """Save user config to ~/.dayctl/config.json."""
+    ensure_dirs()
+    CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")

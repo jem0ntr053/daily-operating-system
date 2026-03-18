@@ -207,3 +207,21 @@ def test_yesterday_alias(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "yesterday"], monkeypatch)
     plan = load_plan(yesterday)
     assert plan.day == yesterday
+
+
+# ---------------------------------------------------------------------------
+# config
+# ---------------------------------------------------------------------------
+
+def test_config_theme_view(day_env, monkeypatch):
+    out = _run(day_env, ["config", "theme"], monkeypatch)
+    assert "dracula" in out
+    assert "Available" in out
+
+
+def test_config_theme_set(day_env, monkeypatch):
+    out = _run(day_env, ["config", "theme", "nord"], monkeypatch)
+    assert "nord" in out
+    # Verify it persisted
+    out = _run(day_env, ["config", "theme"], monkeypatch)
+    assert "Current theme: nord" in out

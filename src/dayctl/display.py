@@ -7,22 +7,13 @@ import sys
 from typing import List, Dict
 
 from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, profile_for_date, score_plan
+from dayctl.themes import BOLD, DIM, RESET, get_theme
+from dayctl.storage import load_config
 
 
 # ---------------------------------------------------------------------------
 # ANSI helpers
 # ---------------------------------------------------------------------------
-
-class Color:
-    GREEN = "\033[32m"
-    RED = "\033[31m"
-    YELLOW = "\033[33m"
-    BOLD = "\033[1m"
-    DIM = "\033[2m"
-    RESET = "\033[0m"
-    CYAN = "\033[36m"
-    BG_DIM = "\033[48;5;236m"
-
 
 def _supports_color() -> bool:
     if os.environ.get("NO_COLOR"):
@@ -32,9 +23,15 @@ def _supports_color() -> bool:
     return sys.stdout.isatty()
 
 
+def _active_theme() -> dict[str, str]:
+    """Load the user's configured theme."""
+    config = load_config()
+    return get_theme(config.get("theme"))
+
+
 def _c(code: str, text: str) -> str:
     if _supports_color():
-        return f"{code}{text}{Color.RESET}"
+        return f"{code}{text}{RESET}"
     return text
 
 
@@ -43,9 +40,10 @@ def _c(code: str, text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def render_checkbox(value: bool) -> str:
+    t = _active_theme()
     if value:
-        return _c(Color.GREEN, "[x]")
-    return _c(Color.RED, "[ ]")
+        return _c(t["green"], "[x]")
+    return _c(t["red"], "[ ]")
 
 
 def render_tasks(tasks: List[Dict[str, bool | str]]) -> str:
@@ -57,14 +55,15 @@ def render_tasks(tasks: List[Dict[str, bool | str]]) -> str:
 
 
 def _score_bar(score: int, max_score: int = 4) -> str:
+    t = _active_theme()
     filled = "█" * score
     empty = "░" * (max_score - score)
     if score == max_score:
-        return _c(Color.GREEN, filled + empty)
+        return _c(t["green"], filled + empty)
     elif score >= max_score // 2:
-        return _c(Color.YELLOW, filled) + _c(Color.DIM, empty)
+        return _c(t["yellow"], filled) + _c(t["muted"], empty)
     else:
-        return _c(Color.RED, filled) + _c(Color.DIM, empty)
+        return _c(t["red"], filled) + _c(t["muted"], empty)
 
 
 # ---------------------------------------------------------------------------
@@ -80,39 +79,40 @@ def _detect_profile_label(plan: DayPlan) -> str:
 
 
 def print_plan(plan: DayPlan) -> None:
+    t = _active_theme()
     header = f"DAY: {plan.day}"
-    print(f"\n{_c(Color.BOLD, header)}")
-    print("=" * len(header))
+    print(f"\n{_c(BOLD, header)}")
+    print(_c(t["muted"], "=" * len(header)))
     label = _detect_profile_label(plan)
-    print(f"Profile: {_c(Color.CYAN, label)}")
-    print(f"Focus: {plan.focus or _c(Color.DIM, '-')}")
-    print(f"Energy: {plan.energy or _c(Color.DIM, '-')}")
-    print(f"Sleep: {plan.sleep_hours or _c(Color.DIM, '-')}")
-    print(f"Fasting Window: {plan.fasting_window}")
+    print(f"Profile: {_c(t['accent'], label)}")
+    print(f"Focus: {plan.focus or _c(t['muted'], '-')}")
+    print(f"Energy: {plan.energy or _c(t['muted'], '-')}")
+    print(f"Sleep: {plan.sleep_hours or _c(t['muted'], '-')}")
+    print(f"Fasting Window: {_c(t['orange'], plan.fasting_window)}")
 
-    print(f"\n{_c(Color.BOLD, 'NON-NEGOTIABLES')}")
+    print(f"\n{_c(t['heading'], 'NON-NEGOTIABLES')}")
     for key in NON_NEGOTIABLE_KEYS:
         print(f"  {render_checkbox(plan.completed[key])} {key.upper()}")
 
-    print(f"\n{_c(Color.BOLD, 'SCHEDULE')}")
+    print(f"\n{_c(t['heading'], 'SCHEDULE')}")
     for item in plan.schedule:
-        print(f"  - {item}")
+        print(f"  {_c(t['muted'], '-')} {item}")
 
-    print(f"\n{_c(Color.BOLD, 'APP TASKS')}")
+    print(f"\n{_c(t['heading'], 'APP TASKS')}")
     print(render_tasks(plan.app_tasks))
 
-    print(f"\n{_c(Color.BOLD, 'MUSIC TASKS')}")
+    print(f"\n{_c(t['heading'], 'MUSIC TASKS')}")
     print(render_tasks(plan.music_tasks))
 
-    print(f"\n{_c(Color.BOLD, 'NOTES')}")
+    print(f"\n{_c(t['heading'], 'NOTES')}")
     if plan.notes:
         for n in plan.notes:
-            print(f"  - {n}")
+            print(f"  {_c(t['muted'], '-')} {n}")
     else:
-        print(f"  {_c(Color.DIM, '-')}")
+        print(f"  {_c(t['muted'], '-')}")
 
     s = score_plan(plan)
-    print(f"\n{_c(Color.BOLD, 'SCORE')}: {_score_bar(s)} {s} / 4\n")
+    print(f"\n{_c(BOLD, 'SCORE')}: {_score_bar(s)} {s} / 4\n")
 
 
 # ---------------------------------------------------------------------------
@@ -123,18 +123,20 @@ def print_score_table(
     rows: list[tuple[str, int | None]],
     highlight: str | None = None,
 ) -> None:
+    t = _active_theme()
+
     if not rows:
-        print(_c(Color.DIM, "No data."))
+        print(_c(t["muted"], "No data."))
         return
 
-    print(f"\n{'DATE':<14} {'SCORE':<8} {'':>4}")
-    print("-" * 28)
+    print(f"\n{_c(t['heading'], 'DATE'):<28} {_c(t['heading'], 'SCORE'):<8}")
+    print(_c(t["muted"], "-" * 28))
 
     total, count = 0, 0
     for day_str, score in rows:
         is_hl = highlight and day_str == highlight
         if score is None:
-            row = f"{day_str:<14} {_c(Color.DIM, '  -')}"
+            row = f"{day_str:<14} {_c(t['muted'], '  -')}"
         else:
             bar = _score_bar(score)
             row = f"{day_str:<14} {bar} {score}/4"
@@ -142,13 +144,13 @@ def print_score_table(
             count += 1
 
         if is_hl:
-            row = _c(Color.CYAN, "▸ ") + row
+            row = _c(t["cyan"], "▸ ") + row
         else:
             row = "  " + row
         print(row)
 
-    print("-" * 28)
+    print(_c(t["muted"], "-" * 28))
     if count:
         avg = total / count
-        print(f"  {'Average':<14} {avg:.1f}/4")
+        print(f"  {_c(t['accent'], 'Average'):<28} {avg:.1f}/4")
     print()

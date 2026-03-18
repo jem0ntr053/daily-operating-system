@@ -9,4 +9,5 @@ def day_env(tmp_path, monkeypatch):
     import dayctl.storage as storage
     monkeypatch.setattr(storage, "DATA_DIR", tmp_path)
     monkeypatch.setattr(storage, "DAYS_DIR", tmp_path / "days")
+    monkeypatch.setattr(storage, "CONFIG_PATH", tmp_path / "config.json")
     return tmp_path
