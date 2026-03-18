@@ -6,7 +6,7 @@ import os
 import sys
 from typing import List, Dict
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, score_plan
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, profile_for_date, score_plan
 
 
 # ---------------------------------------------------------------------------
@@ -71,10 +71,20 @@ def _score_bar(score: int, max_score: int = 4) -> str:
 # Plan display
 # ---------------------------------------------------------------------------
 
+def _detect_profile_label(plan: DayPlan) -> str:
+    """Match the plan's schedule to a profile and return its label."""
+    for profile in SCHEDULE_PROFILES.values():
+        if plan.schedule == profile["schedule"]:
+            return profile["label"]
+    return profile_for_date(plan.day)["label"]
+
+
 def print_plan(plan: DayPlan) -> None:
     header = f"DAY: {plan.day}"
     print(f"\n{_c(Color.BOLD, header)}")
     print("=" * len(header))
+    label = _detect_profile_label(plan)
+    print(f"Profile: {_c(Color.CYAN, label)}")
     print(f"Focus: {plan.focus or _c(Color.DIM, '-')}")
     print(f"Energy: {plan.energy or _c(Color.DIM, '-')}")
     print(f"Sleep: {plan.sleep_hours or _c(Color.DIM, '-')}")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, score_plan
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, score_plan
 from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str
 from dayctl.display import print_plan, print_score_table
 
@@ -39,9 +39,10 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Plan already exists: {path}")
         print("Use --force to overwrite.")
         return
-    plan = DayPlan.new(ds)
+    profile_key = getattr(args, "profile", None)
+    plan = DayPlan.new(ds, profile_key=profile_key)
     save_plan(plan)
-    print(f"Created: {path}")
+    print(f"Created: {path} ({plan.schedule[0].split('  ', 1)[0]} wake)")
 
 
 def cmd_show(args: argparse.Namespace) -> None:
@@ -203,6 +204,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="Create today's plan file.")
     p_init.add_argument("--date", help=DATE_HELP)
     p_init.add_argument("--force", action="store_true", help="Overwrite existing file.")
+    p_init.add_argument(
+        "--profile",
+        choices=list(SCHEDULE_PROFILES),
+        help="Schedule profile override (e.g. saturday_show). Auto-detected from day of week if omitted.",
+    )
     p_init.set_defaults(func=cmd_init)
 
     # show

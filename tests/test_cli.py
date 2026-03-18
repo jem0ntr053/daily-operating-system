@@ -49,6 +49,15 @@ def test_init_and_show(day_env, monkeypatch):
     assert "2026-03-17" in out
 
 
+def test_init_with_profile_override(day_env, monkeypatch):
+    # 2026-03-21 is Saturday, default would be saturday_no_show
+    out = _run(day_env, ["init", "--date", "2026-03-21", "--profile", "saturday_show"], monkeypatch)
+    assert "Created" in out
+    plan = load_plan("2026-03-21")
+    assert plan.schedule[0] == "9:30 AM  Wake / Recovery"
+    assert plan.fasting_window == "11:00 PM → 4:00 PM"
+
+
 def test_check_and_uncheck(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["check", "gym", "--date", "2026-03-17"], monkeypatch)
