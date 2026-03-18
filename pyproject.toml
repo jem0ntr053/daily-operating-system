@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daily-operating-system"
+version = "0.2.0"
+description = "Minimal daily CLI for schedule, fasting, gym, app work, and music tracking"
+requires-python = ">=3.10"
+license = "MIT"
+
+[project.scripts]
+day = "dayctl.cli:main"
+dayctl = "dayctl.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
