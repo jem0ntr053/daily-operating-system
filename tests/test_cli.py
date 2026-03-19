@@ -46,7 +46,16 @@ def test_init_and_show(day_env, monkeypatch):
     out = _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     assert "Created" in out
     out = _run(day_env, ["show", "--date", "2026-03-17"], monkeypatch)
-    assert "2026-03-17" in out
+    assert "Tuesday, Mar 17" in out
+
+
+def test_init_with_profile_override(day_env, monkeypatch):
+    # 2026-03-21 is Saturday, default would be saturday_no_show
+    out = _run(day_env, ["init", "--date", "2026-03-21", "--profile", "saturday_show"], monkeypatch)
+    assert "Created" in out
+    plan = load_plan("2026-03-21")
+    assert plan.schedule[0] == "9:30 AM  Wake / Recovery"
+    assert plan.fasting_window == "11:00 PM → 4:00 PM"
 
 
 def test_check_and_uncheck(day_env, monkeypatch):
@@ -162,10 +171,10 @@ def test_music_shortcut(day_env, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_week(day_env, monkeypatch):
-    today = date.today().isoformat()
-    _run(day_env, ["init", "--date", today], monkeypatch)
+    today = date.today()
+    _run(day_env, ["init", "--date", today.isoformat()], monkeypatch)
     out = _run(day_env, ["week"], monkeypatch)
-    assert today in out
+    assert today.strftime("%m/%d") in out
     assert "DATE" in out
 
 
@@ -178,15 +187,15 @@ def test_history_with_data(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-01-01"], monkeypatch)
     _run(day_env, ["init", "--date", "2026-01-02"], monkeypatch)
     out = _run(day_env, ["history"], monkeypatch)
-    assert "2026-01-01" in out
-    assert "2026-01-02" in out
+    assert "01/01" in out
+    assert "01/02" in out
 
 
 def test_summary(day_env, monkeypatch):
-    today = date.today().isoformat()
-    _run(day_env, ["init", "--date", today], monkeypatch)
+    today = date.today()
+    _run(day_env, ["init", "--date", today.isoformat()], monkeypatch)
     out = _run(day_env, ["summary"], monkeypatch)
-    assert today in out
+    assert today.strftime("%m/%d") in out
 
 
 # ---------------------------------------------------------------------------
@@ -198,3 +207,21 @@ def test_yesterday_alias(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "yesterday"], monkeypatch)
     plan = load_plan(yesterday)
     assert plan.day == yesterday
+
+
+# ---------------------------------------------------------------------------
+# config
+# ---------------------------------------------------------------------------
+
+def test_config_theme_view(day_env, monkeypatch):
+    out = _run(day_env, ["config", "theme"], monkeypatch)
+    assert "dracula" in out
+    assert "Available" in out
+
+
+def test_config_theme_set(day_env, monkeypatch):
+    out = _run(day_env, ["config", "theme", "nord"], monkeypatch)
+    assert "nord" in out
+    # Verify it persisted
+    out = _run(day_env, ["config", "theme"], monkeypatch)
+    assert "Current theme: nord" in out

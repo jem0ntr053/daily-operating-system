@@ -3,23 +3,123 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from datetime import date
 from typing import Dict, List
 
 
-DEFAULT_SCHEDULE = [
-    "6:30 AM  Wake",
-    "7:00–8:00 AM  App Work",
-    "8:00 AM–4:00 PM  Remote Work",
-    "2:00 PM  Break Fast / Meal 1",
-    "3:45 PM  Pre-Gym Snack",
-    "4:20 PM  Leave for Gym",
-    "4:30–6:00 PM  Gym",
-    "6:00–6:10 PM  Drive Home",
-    "6:10 PM  Dinner / Post-Workout Meal",
-    "6:50–7:50 PM  Music Production",
-    "9:00 PM  Fast Starts",
-    "10:30 PM  Sleep",
-]
+SCHEDULE_PROFILES = {
+    "weekday": {
+        "label": "Mon-Thu Standard",
+        "fasting_window": "9:00 PM → 2:00 PM",
+        "schedule": [
+            "6:30 AM  Wake",
+            "7:00–8:00 AM  App Work",
+            "8:00 AM–4:00 PM  Remote Work",
+            "2:00 PM  Break Fast / Meal 1",
+            "3:45 PM  Pre-Gym Snack",
+            "4:20 PM  Leave for Gym",
+            "4:30–6:00 PM  Gym",
+            "6:00–6:10 PM  Drive Home",
+            "6:10 PM  Dinner / Post-Workout Meal",
+            "6:50–7:50 PM  Music Production",
+            "7:50–9:30 PM  Free Time / Reset",
+            "9:00 PM  Fast Starts",
+            "10:30 PM  Sleep",
+        ],
+    },
+    "friday": {
+        "label": "Friday Flexible",
+        "fasting_window": "11:00 PM → 4:00 PM",
+        "schedule": [
+            "7:00 AM  Wake",
+            "8:00 AM–4:00 PM  Remote Work",
+            "4:00 PM  Break Fast / Meal 1",
+            "5:15 PM  Pre-Gym Snack",
+            "5:50 PM  Leave for Gym",
+            "6:00–7:30 PM  Gym",
+            "7:30–7:40 PM  Drive Home",
+            "7:45 PM  Dinner / Post-Workout Meal",
+            "8:30–9:30 PM  Light Music / Prep / Overflow",
+            "9:30 PM onward  Social / Show Prep / Flexible Night",
+            "11:00 PM  Fast Starts",
+            "1:00 AM  Target Sleep (flexible)",
+        ],
+    },
+    "saturday_show": {
+        "label": "Saturday Show Night",
+        "fasting_window": "11:00 PM → 4:00 PM",
+        "schedule": [
+            "9:30 AM  Wake / Recovery",
+            "10:00 AM–12:00 PM  Free Time / Recovery / Admin",
+            "12:30 PM  Optional Light App Work or Planning",
+            "4:00 PM  Break Fast / Meal 1",
+            "5:15 PM  Pre-Gym Snack",
+            "5:50 PM  Leave for Gym",
+            "6:00–7:30 PM  Gym",
+            "7:30–7:40 PM  Drive Home",
+            "7:45 PM  Dinner / Post-Workout Meal",
+            "8:30–10:00 PM  Set Prep / Travel / Showtime Prep",
+            "10:00 PM–3:00 AM  Show / Gig / Late Night",
+            "11:00 PM  Fast Starts if possible, otherwise start after final meal",
+            "3:30 AM  Sleep",
+        ],
+    },
+    "saturday_no_show": {
+        "label": "Saturday No-Show",
+        "fasting_window": "10:00 PM → 3:00 PM",
+        "schedule": [
+            "8:30 AM  Wake",
+            "9:00–10:00 AM  App Work",
+            "10:00 AM–1:00 PM  Free Time / Errands / Recovery",
+            "3:00 PM  Break Fast / Meal 1",
+            "4:15 PM  Pre-Gym Snack",
+            "4:50 PM  Leave for Gym",
+            "5:00–6:30 PM  Gym",
+            "6:30–6:40 PM  Drive Home",
+            "6:45 PM  Dinner / Post-Workout Meal",
+            "7:30–8:30 PM  Music Production",
+            "8:30–10:30 PM  Flexible Night",
+            "10:00 PM  Fast Starts",
+            "12:00 AM  Sleep",
+        ],
+    },
+    "sunday": {
+        "label": "Sunday Reset",
+        "fasting_window": "9:00 PM → 2:00 PM",
+        "schedule": [
+            "8:30 AM  Wake",
+            "9:00–9:30 AM  Weekly Reset / Planning",
+            "10:20 AM  Leave for Gym",
+            "10:30 AM–12:00 PM  Gym",
+            "12:00–12:10 PM  Drive Home",
+            "2:00 PM  Break Fast / Meal 1",
+            "3:30 PM  App Planning / Weekly Review",
+            "5:00 PM  Dinner",
+            "6:00–7:00 PM  Music Production / Organization",
+            "7:00–8:30 PM  Prepare for Monday",
+            "9:00 PM  Fast Starts",
+            "10:30 PM  Sleep",
+        ],
+    },
+}
+
+# Day-of-week (0=Mon) to profile key. Saturday defaults to no_show.
+_DOW_TO_PROFILE = {
+    0: "weekday",
+    1: "weekday",
+    2: "weekday",
+    3: "weekday",
+    4: "friday",
+    5: "saturday_no_show",
+    6: "sunday",
+}
+
+
+def profile_for_date(day_str: str) -> dict:
+    """Return the schedule profile dict for a given YYYY-MM-DD date."""
+    d = date.fromisoformat(day_str)
+    key = _DOW_TO_PROFILE[d.weekday()]
+    return SCHEDULE_PROFILES[key]
 
 DEFAULT_TASKS = {
     "app": [
@@ -49,14 +149,18 @@ class DayPlan:
     notes: List[str]
 
     @staticmethod
-    def new(day_str: str) -> DayPlan:
+    def new(day_str: str, profile_key: str | None = None) -> DayPlan:
+        if profile_key and profile_key in SCHEDULE_PROFILES:
+            profile = SCHEDULE_PROFILES[profile_key]
+        else:
+            profile = profile_for_date(day_str)
         return DayPlan(
             day=day_str,
             focus="",
             energy="",
             sleep_hours="",
-            fasting_window="9:00 PM → 2:00 PM",
-            schedule=DEFAULT_SCHEDULE.copy(),
+            fasting_window=profile["fasting_window"],
+            schedule=list(profile["schedule"]),
             completed={k: False for k in NON_NEGOTIABLE_KEYS},
             app_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["app"]],
             music_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["music"]],

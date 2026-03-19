@@ -13,7 +13,7 @@ pip install -e .
 ### Core
 
 ```bash
-day init                          # Create today's plan
+day init                          # Create today's plan (auto-detects schedule)
 day show                          # Display today's plan
 day check fast                    # Mark fasting complete
 day check gym                     # Mark gym complete
@@ -54,6 +54,38 @@ day week                          # Scores for past 7 days
 day summary                       # Current week Mon–Sun
 day history                       # All tracked days
 ```
+
+### Schedule profiles
+
+The schedule and fasting window are auto-detected from the day of the week:
+
+| Day       | Profile            | Fasting Window       |
+|-----------|--------------------|----------------------|
+| Mon–Thu   | Mon-Thu Standard   | 9:00 PM → 2:00 PM   |
+| Friday    | Friday Flexible    | 11:00 PM → 4:00 PM  |
+| Saturday  | Saturday No-Show   | 10:00 PM → 3:00 PM  |
+| Sunday    | Sunday Reset       | 9:00 PM → 2:00 PM   |
+
+Override on Saturdays with a show:
+
+```bash
+day init --profile saturday_show
+```
+
+Available profiles: `weekday`, `friday`, `saturday_show`, `saturday_no_show`, `sunday`
+
+### Themes
+
+Output is colorized using the Dracula palette by default. Switch themes with:
+
+```bash
+day config theme              # View current theme
+day config theme nord         # Switch to Nord
+```
+
+Available themes: `dracula`, `catppuccin`, `gruvbox`, `nord`, `mono`
+
+Theme preference is saved to `~/.dayctl/config.json`.
 
 ### Date targeting
 

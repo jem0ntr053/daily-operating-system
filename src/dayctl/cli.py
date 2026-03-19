@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, score_plan
-from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, score_plan
+from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config
 from dayctl.display import print_plan, print_score_table
+from dayctl.themes import list_themes, get_theme
 
 
 # ---------------------------------------------------------------------------
@@ -39,9 +40,10 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Plan already exists: {path}")
         print("Use --force to overwrite.")
         return
-    plan = DayPlan.new(ds)
+    profile_key = getattr(args, "profile", None)
+    plan = DayPlan.new(ds, profile_key=profile_key)
     save_plan(plan)
-    print(f"Created: {path}")
+    print(f"Created: {path} ({plan.schedule[0].split('  ', 1)[0]} wake)")
 
 
 def cmd_show(args: argparse.Namespace) -> None:
@@ -192,6 +194,31 @@ def cmd_summary(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# New: config
+# ---------------------------------------------------------------------------
+
+def cmd_config(args: argparse.Namespace) -> None:
+    config = load_config()
+    key = args.key
+    value = args.value
+
+    if key == "theme":
+        available = list_themes()
+        if value is None:
+            current = config.get("theme", "dracula")
+            print(f"Current theme: {current}")
+            print(f"Available: {', '.join(available)}")
+            return
+        if value.lower() not in available:
+            raise SystemExit(f"Unknown theme '{value}'. Available: {', '.join(available)}")
+        config["theme"] = value.lower()
+        save_config(config)
+        print(f"Theme set to: {value.lower()}")
+    else:
+        raise SystemExit(f"Unknown config key '{key}'. Available: theme")
+
+
+# ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
 
@@ -203,6 +230,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="Create today's plan file.")
     p_init.add_argument("--date", help=DATE_HELP)
     p_init.add_argument("--force", action="store_true", help="Overwrite existing file.")
+    p_init.add_argument(
+        "--profile",
+        choices=list(SCHEDULE_PROFILES),
+        help="Schedule profile override (e.g. saturday_show). Auto-detected from day of week if omitted.",
+    )
     p_init.set_defaults(func=cmd_init)
 
     # show
@@ -267,6 +299,12 @@ def build_parser() -> argparse.ArgumentParser:
     # summary
     p_summary = sub.add_parser("summary", help="Current week at a glance (Mon–Sun).")
     p_summary.set_defaults(func=cmd_summary)
+
+    # config
+    p_config = sub.add_parser("config", help="View or change settings (e.g. theme).")
+    p_config.add_argument("key", help="Config key (e.g. theme)")
+    p_config.add_argument("value", nargs="?", default=None, help="Value to set (omit to view current)")
+    p_config.set_defaults(func=cmd_config)
 
     return parser
 
