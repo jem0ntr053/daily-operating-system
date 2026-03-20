@@ -42,6 +42,20 @@ def test_to_dict_roundtrip():
     assert restored.app_tasks == plan.app_tasks
 
 
+def test_from_dict_ignores_unknown_keys():
+    plan = DayPlan.new("2026-03-17")
+    data = plan.to_dict()
+    data["some_future_field"] = "value"
+    restored = DayPlan.from_dict(data)
+    assert restored.day == "2026-03-17"
+
+
+def test_from_dict_raises_on_missing_required():
+    import pytest
+    with pytest.raises(ValueError, match="Malformed plan data"):
+        DayPlan.from_dict({"day": "2026-03-17"})
+
+
 # ---------------------------------------------------------------------------
 # Schedule profiles
 # ---------------------------------------------------------------------------
