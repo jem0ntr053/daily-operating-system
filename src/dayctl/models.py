@@ -150,6 +150,14 @@ DEFAULT_TASKS = {
     ],
 }
 
+# Profiles that have a show/no-show counterpart (bidirectional)
+SHOW_TOGGLE = {
+    "friday": "friday_show",
+    "friday_show": "friday",
+    "saturday_no_show": "saturday_show",
+    "saturday_show": "saturday_no_show",
+}
+
 NON_NEGOTIABLE_KEYS = ["fast", "gym", "app", "music"]
 
 
@@ -190,6 +198,15 @@ class DayPlan:
             music_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["music"]],
             notes=[],
         )
+
+    def switch_profile(self, new_key: str) -> None:
+        """Switch schedule profile in-place, preserving user data."""
+        if new_key not in SCHEDULE_PROFILES:
+            raise ValueError(f"Unknown profile '{new_key}'. Valid: {', '.join(SCHEDULE_PROFILES)}")
+        prof = SCHEDULE_PROFILES[new_key]
+        self.profile = new_key
+        self.fasting_window = prof["fasting_window"]
+        self.schedule = list(prof["schedule"])
 
     def to_dict(self) -> dict:
         return asdict(self)

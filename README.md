@@ -66,13 +66,23 @@ The schedule and fasting window are auto-detected from the day of the week:
 | Saturday  | Saturday No-Show   | 10:00 PM → 3:00 PM  |
 | Sunday    | Sunday Reset       | 9:00 PM → 2:00 PM   |
 
-Override on Saturdays with a show:
+Toggle show night on Friday or Saturday (preserves tasks, notes, and progress):
+
+```bash
+day tonight              # Toggle between show/no-show
+day tonight show         # Switch to show night profile
+day tonight off          # Switch back to regular profile
+```
+
+The web UI also shows a "Playing a show tonight?" toggle in the sidebar on Fri/Sat.
+
+Override any day's profile manually:
 
 ```bash
 day init --profile saturday_show
 ```
 
-Available profiles: `weekday`, `friday`, `saturday_show`, `saturday_no_show`, `sunday`
+Available profiles: `weekday`, `friday`, `friday_show`, `saturday_show`, `saturday_no_show`, `sunday`
 
 ### Themes
 

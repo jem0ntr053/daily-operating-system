@@ -12,7 +12,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dayctl.models import (
-    DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES,
+    DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
     score_plan, profile_for_date,
 )
 from dayctl.storage import load_plan, save_plan, plan_path, load_config, save_config
@@ -223,20 +223,22 @@ def main() -> None:
             format_func=lambda k: SCHEDULE_PROFILES[k]["label"],
         )
 
+        # Show tonight toggle (only on Fri/Sat)
+        selected_dow = date.fromisoformat(day_str).weekday()
+        if selected_dow in (4, 5):  # Friday or Saturday
+            is_show = profile_key in ("friday_show", "saturday_show")
+            show_toggle = st.toggle("Playing a show tonight?", value=is_show, key=f"show_{day_str}")
+            if show_toggle and not is_show:
+                profile_key = SHOW_TOGGLE.get(profile_key, profile_key)
+            elif not show_toggle and is_show:
+                profile_key = SHOW_TOGGLE.get(profile_key, profile_key)
+
         # Init / reinit (preserve user data on profile switch)
         if plan is None:
             plan = DayPlan.new(day_str, profile_key=profile_key)
             save_plan(plan)
         elif plan.profile != profile_key:
-            new_plan = DayPlan.new(day_str, profile_key=profile_key)
-            new_plan.focus = plan.focus
-            new_plan.energy = plan.energy
-            new_plan.sleep_hours = plan.sleep_hours
-            new_plan.completed = plan.completed
-            new_plan.app_tasks = plan.app_tasks
-            new_plan.music_tasks = plan.music_tasks
-            new_plan.notes = plan.notes
-            plan = new_plan
+            plan.switch_profile(profile_key)
             save_plan(plan)
 
         st.divider()

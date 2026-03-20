@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, score_plan, wake_time
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE, score_plan, wake_time
 from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config
 from dayctl.display import print_plan, print_score_table, resolve_theme
 from dayctl.themes import list_themes
@@ -212,6 +212,38 @@ def cmd_summary(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# New: tonight (show/no-show profile toggle)
+# ---------------------------------------------------------------------------
+
+def cmd_tonight(args: argparse.Namespace) -> None:
+    ds = resolve_date(args.date) or today_str()
+    plan = load_plan(ds)
+
+    if plan.profile not in SHOW_TOGGLE:
+        raise SystemExit(
+            f"Profile '{plan.profile}' has no show toggle. "
+            f"Only available on Friday and Saturday."
+        )
+
+    mode = getattr(args, "mode", None)
+    if mode == "show":
+        target = "friday_show" if "friday" in plan.profile else "saturday_show"
+    elif mode == "off":
+        target = "friday" if "friday" in plan.profile else "saturday_no_show"
+    else:
+        # Toggle
+        target = SHOW_TOGGLE[plan.profile]
+
+    if target == plan.profile:
+        print(f"Already on {SCHEDULE_PROFILES[plan.profile]['label']}.")
+        return
+
+    plan.switch_profile(target)
+    save_plan(plan)
+    print(f"Switched to {SCHEDULE_PROFILES[target]['label']}.")
+
+
+# ---------------------------------------------------------------------------
 # New: config
 # ---------------------------------------------------------------------------
 
@@ -331,6 +363,15 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
         p.add_argument("--date", help=DATE_HELP)
         p.set_defaults(func=cmd_task, category=category)
+
+    # tonight
+    p_tonight = sub.add_parser("tonight", help="Toggle show/no-show profile (Fri & Sat).")
+    p_tonight.add_argument(
+        "mode", nargs="?", choices=["show", "off"], default=None,
+        help="Force 'show' or 'off'. Omit to toggle.",
+    )
+    p_tonight.add_argument("--date", help=DATE_HELP)
+    p_tonight.set_defaults(func=cmd_tonight)
 
     # week
     p_week = sub.add_parser("week", help="Show scores for the past 7 days.")
