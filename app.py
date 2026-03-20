@@ -42,29 +42,118 @@ def inject_css(t: dict[str, str]) -> None:
         h1, h2, h3 {{
             color: {t['heading']} !important;
         }}
-        .score-badge {{
-            display: inline-block;
-            font-size: 2rem;
-            font-weight: bold;
-            padding: 0.3rem 0.8rem;
-            border-radius: 0.5rem;
-            background: {t['surface']};
-        }}
+
+        /* Schedule — tighter spacing */
         .schedule-item {{
-            padding: 0.25rem 0;
+            padding: 0.12rem 0;
             border-bottom: 1px solid {t['surface']};
             font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }}
         .schedule-time {{
             color: {t['muted']};
         }}
-        .section-box {{
-            background: {t['surface']};
+
+        /* Non-negotiable toggle cards */
+        .nn-card {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 0.5rem;
             border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            font-weight: bold;
+            font-size: 0.95rem;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 2px solid transparent;
         }}
+        .nn-card.done {{
+            background: {t['green']}18;
+            border-color: {t['green']}60;
+            color: {t['green']};
+        }}
+        .nn-card.pending {{
+            background: {t['surface']};
+            border-color: {t['muted']}40;
+            color: {t['muted']};
+        }}
+        .nn-card .nn-icon {{
+            font-size: 1.1rem;
+        }}
+
+        /* Score progress bar */
+        .score-bar-container {{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }}
+        .score-bar-track {{
+            flex: 1;
+            height: 8px;
+            background: {t['surface']};
+            border-radius: 4px;
+            overflow: hidden;
+        }}
+        .score-bar-fill {{
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }}
+        .score-label {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            min-width: 3rem;
+            text-align: right;
+        }}
+
+        /* Subtle +/- buttons (default for all buttons) */
+        div[data-testid="stButton"] > button {{
+            background: transparent !important;
+            border: 1px solid {t['muted']}40 !important;
+            color: {t['muted']} !important;
+            font-size: 1rem !important;
+            padding: 0.15rem 0.5rem !important;
+            min-height: 0 !important;
+            transition: all 0.15s ease;
+        }}
+        div[data-testid="stButton"] > button:hover {{
+            border-color: {t['accent']} !important;
+            color: {t['accent']} !important;
+            background: {t['accent']}15 !important;
+        }}
+
+        /* Non-negotiable toggle buttons — override default button style */
+        div[data-testid="stButton"] > button[kind="secondary"]:has(> div > p) {{
+            padding: 0.75rem 0.5rem !important;
+            font-weight: bold !important;
+            font-size: 0.95rem !important;
+            letter-spacing: 0.03em !important;
+            min-height: 2.5rem !important;
+        }}
+
+        /* Section headers with subtle underline */
+        .section-header {{
+            color: {t['heading']};
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid {t['muted']}30;
+        }}
+
+        /* Hide default checkbox styling for NN (we use custom cards) */
+        .nn-hidden-checkbox {{
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            overflow: hidden;
+        }}
+
         div[data-testid="stCheckbox"] label span {{
             color: {t['fg']} !important;
         }}
@@ -162,24 +251,15 @@ def main() -> None:
 
     # Reload plan (may have changed via profile switch)
     plan = load_plan(day_str)
-    s = score_plan(plan)
 
     # --- Header ---
-    col_title, col_score = st.columns([3, 1])
-    with col_title:
-        st.markdown(
-            f"<h1 style='margin-bottom:0'>{format_date_display(day_str)}</h1>"
-            f"<p style='color:{t['accent']};font-size:1.1rem;margin-top:0'>"
-            f"{SCHEDULE_PROFILES[plan.profile]['label']} · "
-            f"Fasting: {plan.fasting_window}</p>",
-            unsafe_allow_html=True,
-        )
-    with col_score:
-        sc = score_color(s, t)
-        st.markdown(
-            f"<div class='score-badge' style='color:{sc}'>{s} / 4</div>",
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        f"<h1 style='margin-bottom:0'>{format_date_display(day_str)}</h1>"
+        f"<p style='color:{t['accent']};font-size:1.1rem;margin-top:0'>"
+        f"{SCHEDULE_PROFILES[plan.profile]['label']} · "
+        f"Fasting: {plan.fasting_window}</p>",
+        unsafe_allow_html=True,
+    )
 
     st.divider()
 
@@ -188,7 +268,7 @@ def main() -> None:
 
     with left:
         # --- Schedule ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Schedule</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>Schedule</div>", unsafe_allow_html=True)
 
         for item in plan.schedule:
             parts = item.split("  ", 1)
@@ -204,31 +284,58 @@ def main() -> None:
                 st.markdown(f"<div class='schedule-item'>{item}</div>", unsafe_allow_html=True)
 
         # --- Weekly Summary ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Week Summary</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>Week Summary</div>", unsafe_allow_html=True)
         _render_week_summary(day_str, t)
 
         # --- Notes ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Notes</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>Notes</div>", unsafe_allow_html=True)
         _render_notes(plan, day_str, t)
 
     with right:
-        # --- Non-negotiables ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Non-Negotiables</span>", unsafe_allow_html=True)
+        # --- Score bar + Non-negotiables ---
+        s = score_plan(plan)
+        sc = score_color(s, t)
+        pct = int(s / 4 * 100)
+        st.markdown(
+            f"<div class='score-bar-container'>"
+            f"<div class='score-bar-track'>"
+            f"<div class='score-bar-fill' style='width:{pct}%;background:{sc}'></div>"
+            f"</div>"
+            f"<div class='score-label' style='color:{sc}'>{s}/4</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
         nn_cols = st.columns(4)
-        changed = False
         for i, key in enumerate(NON_NEGOTIABLE_KEYS):
             with nn_cols[i]:
-                val = st.checkbox(key.upper(), value=plan.completed[key], key=f"nn_{day_str}_{key}")
-                if val != plan.completed[key]:
-                    plan.completed[key] = val
-                    changed = True
-        if changed:
-            save_plan(plan)
-            st.rerun()
+                done = plan.completed[key]
+                icon = "✓" if done else "○"
+                color = t["green"] if done else t["muted"]
+                bg = f"{t['green']}18" if done else t["surface"]
+                border = f"{t['green']}60" if done else f"{t['muted']}40"
+                st.markdown(
+                    f"<style>"
+                    f"div[data-testid='stButton']:has(button[key='nn_{day_str}_{key}_btn']) > button,"
+                    f"button[aria-label='{icon}  {key.upper()}'] {{"
+                    f"  background: {bg} !important;"
+                    f"  border: 2px solid {border} !important;"
+                    f"  color: {color} !important;"
+                    f"  padding: 0.7rem 0.5rem !important;"
+                    f"  font-weight: bold !important;"
+                    f"  font-size: 0.95rem !important;"
+                    f"  min-height: 2.5rem !important;"
+                    f"}}"
+                    f"</style>",
+                    unsafe_allow_html=True,
+                )
+                if st.button(f"{icon}  {key.upper()}", key=f"nn_{day_str}_{key}_btn", use_container_width=True):
+                    plan.completed[key] = not done
+                    save_plan(plan)
+                    st.rerun()
 
         # --- Details ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Details</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>Details</div>", unsafe_allow_html=True)
 
         new_focus = st.text_input("Focus", value=plan.focus, placeholder="What's the #1 priority today?")
         col_e, col_s = st.columns(2)
@@ -244,11 +351,11 @@ def main() -> None:
             save_plan(plan)
 
         # --- App Tasks ---
-        st.markdown(f"### <span style='color:{t['heading']}'>App Tasks</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>App Tasks</div>", unsafe_allow_html=True)
         _render_tasks(plan, "app_tasks", day_str, t)
 
         # --- Music Tasks ---
-        st.markdown(f"### <span style='color:{t['heading']}'>Music Tasks</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-header'>Music Tasks</div>", unsafe_allow_html=True)
         _render_tasks(plan, "music_tasks", day_str, t)
 
 
