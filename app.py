@@ -270,21 +270,20 @@ def main() -> None:
     left, right = st.columns([1, 1], gap="large")
 
     with left:
-        # --- Schedule ---
-        st.markdown(f"<div class='section-header'>Schedule</div>", unsafe_allow_html=True)
-
-        for item in plan.schedule:
-            parts = item.split("  ", 1)
-            if len(parts) == 2:
-                time_part, activity = parts
-                st.markdown(
-                    f"<div class='schedule-item'>"
-                    f"<span class='schedule-time'>{time_part}</span> &nbsp; {activity}"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(f"<div class='schedule-item'>{item}</div>", unsafe_allow_html=True)
+        # --- Schedule (collapsible) ---
+        with st.expander("Schedule", expanded=False):
+            for item in plan.schedule:
+                parts = item.split("  ", 1)
+                if len(parts) == 2:
+                    time_part, activity = parts
+                    st.markdown(
+                        f"<div class='schedule-item'>"
+                        f"<span class='schedule-time'>{time_part}</span> &nbsp; {activity}"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(f"<div class='schedule-item'>{item}</div>", unsafe_allow_html=True)
 
         st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
