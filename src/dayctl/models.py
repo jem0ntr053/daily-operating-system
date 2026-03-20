@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields
 from datetime import date
 from typing import Dict, List
 
@@ -45,6 +45,24 @@ SCHEDULE_PROFILES = {
             "1:00 AM  Target Sleep (flexible)",
         ],
     },
+    "friday_show": {
+        "label": "Friday Show Night",
+        "fasting_window": "11:00 PM → 4:00 PM",
+        "schedule": [
+            "7:00 AM  Wake",
+            "8:00 AM–4:00 PM  Remote Work",
+            "4:00 PM  Break Fast / Meal 1",
+            "5:15 PM  Pre-Gym Snack",
+            "5:50 PM  Leave for Gym",
+            "6:00–7:30 PM  Gym",
+            "7:30–7:40 PM  Drive Home",
+            "7:45 PM  Dinner / Post-Workout Meal",
+            "8:30–10:00 PM  Set Prep / Travel / Showtime Prep",
+            "10:00 PM–3:00 AM  Show / Gig / Late Night",
+            "11:00 PM  Fast Starts (or after final meal)",
+            "3:30 AM  Sleep",
+        ],
+    },
     "saturday_show": {
         "label": "Saturday Show Night",
         "fasting_window": "11:00 PM → 4:00 PM",
@@ -60,7 +78,7 @@ SCHEDULE_PROFILES = {
             "7:45 PM  Dinner / Post-Workout Meal",
             "8:30–10:00 PM  Set Prep / Travel / Showtime Prep",
             "10:00 PM–3:00 AM  Show / Gig / Late Night",
-            "11:00 PM  Fast Starts if possible, otherwise start after final meal",
+            "11:00 PM  Fast Starts (or after final meal)",
             "3:30 AM  Sleep",
         ],
     },
@@ -138,6 +156,7 @@ NON_NEGOTIABLE_KEYS = ["fast", "gym", "app", "music"]
 @dataclass
 class DayPlan:
     day: str
+    profile: str
     focus: str
     energy: str
     sleep_hours: str
@@ -151,16 +170,19 @@ class DayPlan:
     @staticmethod
     def new(day_str: str, profile_key: str | None = None) -> DayPlan:
         if profile_key and profile_key in SCHEDULE_PROFILES:
-            profile = SCHEDULE_PROFILES[profile_key]
+            resolved_key = profile_key
         else:
-            profile = profile_for_date(day_str)
+            d = date.fromisoformat(day_str)
+            resolved_key = _DOW_TO_PROFILE[d.weekday()]
+        prof = SCHEDULE_PROFILES[resolved_key]
         return DayPlan(
             day=day_str,
+            profile=resolved_key,
             focus="",
             energy="",
-            sleep_hours="",
-            fasting_window=profile["fasting_window"],
-            schedule=list(profile["schedule"]),
+            sleep_hours="8",
+            fasting_window=prof["fasting_window"],
+            schedule=list(prof["schedule"]),
             completed={k: False for k in NON_NEGOTIABLE_KEYS},
             app_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["app"]],
             music_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["music"]],
@@ -172,7 +194,16 @@ class DayPlan:
 
     @classmethod
     def from_dict(cls, data: dict) -> DayPlan:
-        return cls(**data)
+        known = {f.name for f in fields(cls)}
+        filtered = {k: v for k, v in data.items() if k in known}
+        # Backfill profile for plans saved before this field existed
+        if "profile" not in filtered and "day" in filtered:
+            d = date.fromisoformat(filtered["day"])
+            filtered["profile"] = _DOW_TO_PROFILE[d.weekday()]
+        try:
+            return cls(**filtered)
+        except TypeError as e:
+            raise ValueError(f"Malformed plan data: {e}") from e
 
 
 def score_plan(plan: DayPlan) -> int:

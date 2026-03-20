@@ -51,24 +51,22 @@ def cmd_show(args: argparse.Namespace) -> None:
     print_plan(plan)
 
 
-def cmd_check(args: argparse.Namespace) -> None:
+def _set_completed(args: argparse.Namespace, value: bool) -> None:
     plan = load_plan(resolve_date(args.date))
     key = args.item.lower()
     if key not in NON_NEGOTIABLE_KEYS:
         raise SystemExit(f"Invalid item '{args.item}'. Use one of: {', '.join(NON_NEGOTIABLE_KEYS)}")
-    plan.completed[key] = True
+    plan.completed[key] = value
     save_plan(plan)
-    print(f"Checked: {key}")
+    print(f"{'Checked' if value else 'Unchecked'}: {key}")
+
+
+def cmd_check(args: argparse.Namespace) -> None:
+    _set_completed(args, True)
 
 
 def cmd_uncheck(args: argparse.Namespace) -> None:
-    plan = load_plan(resolve_date(args.date))
-    key = args.item.lower()
-    if key not in NON_NEGOTIABLE_KEYS:
-        raise SystemExit(f"Invalid item '{args.item}'. Use one of: {', '.join(NON_NEGOTIABLE_KEYS)}")
-    plan.completed[key] = False
-    save_plan(plan)
-    print(f"Unchecked: {key}")
+    _set_completed(args, False)
 
 
 def cmd_note(args: argparse.Namespace) -> None:
@@ -133,8 +131,15 @@ def cmd_task(args: argparse.Namespace) -> None:
     if idx < 0 or idx >= len(tasks):
         raise SystemExit(f"Task #{action} out of range (1-{len(tasks)})")
 
-    if not value or value not in ("done", "undo"):
-        raise SystemExit(f"Usage: dayctl task {args.category} {action} done|undo")
+    if not value:
+        raise SystemExit(f"Usage: dayctl task {args.category} {action} done|undo|edit \"text\"")
+
+    if value not in ("done", "undo"):
+        # Treat value as new task text (edit)
+        tasks[idx]["task"] = value
+        save_plan(plan)
+        print(f"Updated: {args.category} task #{action}")
+        return
 
     tasks[idx]["done"] = (value == "done")
     save_plan(plan)
