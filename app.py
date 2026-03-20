@@ -315,26 +315,31 @@ def main() -> None:
             with nn_cols[i]:
                 done = plan.completed[key]
                 icon = "✓" if done else "○"
-                color = t["green"] if done else t["muted"]
-                bg = f"{t['green']}18" if done else t["surface"]
-                border = f"{t['green']}60" if done else f"{t['muted']}40"
+                if done:
+                    color = t["green"]
+                    bg = f"{t['green']}18"
+                    border = f"{t['green']}60"
+                else:
+                    color = t["muted"]
+                    bg = t["surface"]
+                    border = f"{t['muted']}40"
+                # Render as styled HTML card + hidden checkbox for toggle
                 st.markdown(
-                    f"<style>"
-                    f"div[data-testid='stButton']:has(button[key='nn_{day_str}_{key}_btn']) > button,"
-                    f"button[aria-label='{icon}  {key.upper()}'] {{"
-                    f"  background: {bg} !important;"
-                    f"  border: 2px solid {border} !important;"
-                    f"  color: {color} !important;"
-                    f"  padding: 0.7rem 0.5rem !important;"
-                    f"  font-weight: bold !important;"
-                    f"  font-size: 0.95rem !important;"
-                    f"  min-height: 2.5rem !important;"
-                    f"}}"
-                    f"</style>",
+                    f"<div style='"
+                    f"background:{bg};border:2px solid {border};color:{color};"
+                    f"border-radius:0.5rem;padding:0.7rem 0.5rem;"
+                    f"text-align:center;font-weight:bold;font-size:0.95rem;"
+                    f"letter-spacing:0.03em;"
+                    f"'>{icon}  {key.upper()}</div>",
                     unsafe_allow_html=True,
                 )
-                if st.button(f"{icon}  {key.upper()}", key=f"nn_{day_str}_{key}_btn", use_container_width=True):
-                    plan.completed[key] = not done
+                val = st.checkbox(
+                    "toggle", value=done,
+                    key=f"nn_{day_str}_{key}",
+                    label_visibility="collapsed",
+                )
+                if val != done:
+                    plan.completed[key] = val
                     save_plan(plan)
                     st.rerun()
 
