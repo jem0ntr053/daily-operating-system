@@ -283,13 +283,17 @@ def main() -> None:
             else:
                 st.markdown(f"<div class='schedule-item'>{item}</div>", unsafe_allow_html=True)
 
+        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+
         # --- Weekly Summary ---
         st.markdown(f"<div class='section-header'>Week Summary</div>", unsafe_allow_html=True)
         _render_week_summary(day_str, t)
 
+        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+
         # --- Notes ---
         st.markdown(f"<div class='section-header'>Notes</div>", unsafe_allow_html=True)
-        _render_notes(plan, day_str, t)
+        _render_notes(plan, day_str)
 
     with right:
         # --- Score bar + Non-negotiables ---
@@ -352,11 +356,11 @@ def main() -> None:
 
         # --- App Tasks ---
         st.markdown(f"<div class='section-header'>App Tasks</div>", unsafe_allow_html=True)
-        _render_tasks(plan, "app_tasks", day_str, t)
+        _render_tasks(plan, "app_tasks", day_str)
 
         # --- Music Tasks ---
         st.markdown(f"<div class='section-header'>Music Tasks</div>", unsafe_allow_html=True)
-        _render_tasks(plan, "music_tasks", day_str, t)
+        _render_tasks(plan, "music_tasks", day_str)
 
 
 def _render_week_summary(day_str: str, t: dict[str, str]) -> None:
@@ -367,7 +371,8 @@ def _render_week_summary(day_str: str, t: dict[str, str]) -> None:
 
     for ds in days:
         is_today = ds == day_str
-        day_label = date.fromisoformat(ds).strftime("%a")
+        dt = date.fromisoformat(ds)
+        day_label = f"{dt.strftime('%a')} {dt.strftime('%m/%d')}"
 
         if plan_path(ds).exists():
             p = load_plan(ds)
@@ -398,7 +403,7 @@ def _render_week_summary(day_str: str, t: dict[str, str]) -> None:
         )
 
 
-def _render_tasks(plan: DayPlan, attr: str, day_str: str, t: dict[str, str]) -> None:
+def _render_tasks(plan: DayPlan, attr: str, day_str: str) -> None:
     tasks = getattr(plan, attr)
     changed = False
     to_delete = None
@@ -443,7 +448,7 @@ def _render_tasks(plan: DayPlan, attr: str, day_str: str, t: dict[str, str]) -> 
         st.rerun()
 
 
-def _render_notes(plan: DayPlan, day_str: str, t: dict[str, str]) -> None:
+def _render_notes(plan: DayPlan, day_str: str) -> None:
     changed = False
     to_delete = None
 
