@@ -266,8 +266,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Minimal daily operating system CLI.",
         epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage="day <command> [options]",
     )
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=True, title="commands", metavar="")
 
     # init
     p_init = sub.add_parser("init", help="Create today's plan file.")
