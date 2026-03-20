@@ -5,10 +5,10 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, score_plan
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, score_plan, wake_time
 from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config
-from dayctl.display import print_plan, print_score_table
-from dayctl.themes import list_themes, get_theme
+from dayctl.display import print_plan, print_score_table, resolve_theme
+from dayctl.themes import list_themes
 
 
 # ---------------------------------------------------------------------------
@@ -43,12 +43,13 @@ def cmd_init(args: argparse.Namespace) -> None:
     profile_key = getattr(args, "profile", None)
     plan = DayPlan.new(ds, profile_key=profile_key)
     save_plan(plan)
-    print(f"Created: {path} ({plan.schedule[0].split('  ', 1)[0]} wake)")
+    print(f"Created: {path} ({wake_time(plan)} wake)")
 
 
 def cmd_show(args: argparse.Namespace) -> None:
+    config = load_config()
     plan = load_plan(resolve_date(args.date))
-    print_plan(plan)
+    print_plan(plan, theme=resolve_theme(config.get("theme")))
 
 
 def _set_completed(args: argparse.Namespace, value: bool) -> None:
@@ -107,6 +108,27 @@ def cmd_set(args: argparse.Namespace) -> None:
 TASK_LIST_ATTR = {"app": "app_tasks", "music": "music_tasks"}
 
 
+def _task_add(tasks: list, plan: DayPlan, category: str, value: str | None) -> None:
+    if not value:
+        raise SystemExit("Usage: dayctl task <category> add <description>")
+    tasks.append({"task": value, "done": False})
+    save_plan(plan)
+    print(f"Added task #{len(tasks)} to {category}")
+
+
+def _task_edit(tasks: list, plan: DayPlan, category: str, idx: int, num: str, value: str) -> None:
+    tasks[idx]["task"] = value
+    save_plan(plan)
+    print(f"Updated: {category} task #{num}")
+
+
+def _task_toggle(tasks: list, plan: DayPlan, category: str, idx: int, num: str, value: str) -> None:
+    tasks[idx]["done"] = (value == "done")
+    save_plan(plan)
+    verb = "Completed" if value == "done" else "Unchecked"
+    print(f"{verb}: {category} task #{num}")
+
+
 def cmd_task(args: argparse.Namespace) -> None:
     plan = load_plan(resolve_date(args.date))
     tasks: list = getattr(plan, TASK_LIST_ATTR[args.category])
@@ -115,14 +137,9 @@ def cmd_task(args: argparse.Namespace) -> None:
     value = args.value
 
     if action == "add":
-        if not value:
-            raise SystemExit("Usage: dayctl task <category> add <description>")
-        tasks.append({"task": value, "done": False})
-        save_plan(plan)
-        print(f"Added task #{len(tasks)} to {args.category}")
+        _task_add(tasks, plan, args.category, value)
         return
 
-    # action_or_index is a task number
     try:
         idx = int(action) - 1
     except ValueError:
@@ -132,19 +149,12 @@ def cmd_task(args: argparse.Namespace) -> None:
         raise SystemExit(f"Task #{action} out of range (1-{len(tasks)})")
 
     if not value:
-        raise SystemExit(f"Usage: dayctl task {args.category} {action} done|undo|edit \"text\"")
+        raise SystemExit(f"Usage: dayctl task {args.category} {action} done|undo|\"new text\"")
 
     if value not in ("done", "undo"):
-        # Treat value as new task text (edit)
-        tasks[idx]["task"] = value
-        save_plan(plan)
-        print(f"Updated: {args.category} task #{action}")
-        return
-
-    tasks[idx]["done"] = (value == "done")
-    save_plan(plan)
-    verb = "Completed" if value == "done" else "Unchecked"
-    print(f"{verb}: {args.category} task #{action}")
+        _task_edit(tasks, plan, args.category, idx, action, value)
+    else:
+        _task_toggle(tasks, plan, args.category, idx, action, value)
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +162,7 @@ def cmd_task(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_week(args: argparse.Namespace) -> None:
+    t = resolve_theme(load_config().get("theme"))
     today = date.today()
     days = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     rows: list[tuple[str, int | None]] = []
@@ -161,7 +172,7 @@ def cmd_week(args: argparse.Namespace) -> None:
             rows.append((d, score_plan(plan)))
         else:
             rows.append((d, None))
-    print_score_table(rows, highlight=today.isoformat())
+    print_score_table(rows, highlight=today.isoformat(), theme=t)
 
 
 # ---------------------------------------------------------------------------
@@ -173,11 +184,12 @@ def cmd_history(args: argparse.Namespace) -> None:
     if not all_days:
         print("No history yet.")
         return
+    t = resolve_theme(load_config().get("theme"))
     rows: list[tuple[str, int | None]] = []
     for d in all_days:
         plan = load_plan(d)
         rows.append((d, score_plan(plan)))
-    print_score_table(rows)
+    print_score_table(rows, theme=t)
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +197,7 @@ def cmd_history(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_summary(args: argparse.Namespace) -> None:
+    t = resolve_theme(load_config().get("theme"))
     today = date.today()
     monday = today - timedelta(days=today.weekday())
     days = [(monday + timedelta(days=i)).isoformat() for i in range(7)]
@@ -195,7 +208,7 @@ def cmd_summary(args: argparse.Namespace) -> None:
             rows.append((d, score_plan(plan)))
         else:
             rows.append((d, None))
-    print_score_table(rows, highlight=today.isoformat())
+    print_score_table(rows, highlight=today.isoformat(), theme=t)
 
 
 # ---------------------------------------------------------------------------
