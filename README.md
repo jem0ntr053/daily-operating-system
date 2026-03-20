@@ -96,6 +96,38 @@ day show --date yesterday
 day check gym --date 2026-03-16
 ```
 
+### Automation
+
+Two launchd agents run in the background:
+
+**Auto-init** — creates today's plan at 6:00 AM so it's ready before your earliest wake time.
+
+**Schedule notifications** — sends a macOS notification 5 minutes before each schedule block.
+
+```bash
+# Install (already done if you followed setup)
+cp scripts/com.dayos.autoinit.plist ~/Library/LaunchAgents/
+cp scripts/com.dayos.notify.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.dayos.autoinit.plist
+launchctl load ~/Library/LaunchAgents/com.dayos.notify.plist
+
+# Pause/resume notifications
+launchctl unload ~/Library/LaunchAgents/com.dayos.notify.plist
+launchctl load ~/Library/LaunchAgents/com.dayos.notify.plist
+
+# Logs
+cat /tmp/dayos-autoinit.log
+cat /tmp/dayos-notify.log
+```
+
+### Calendar export
+
+Generate `.ics` files for all 6 schedule profiles (importable into Apple/Google Calendar):
+
+```bash
+python export_calendars.py    # outputs to calendars/
+```
+
 ## Data
 
 Plans are stored as JSON in `~/.dayctl/days/`. Both `day` and `dayctl` work as commands.

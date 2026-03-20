@@ -240,8 +240,33 @@ def cmd_config(args: argparse.Namespace) -> None:
 # Parser
 # ---------------------------------------------------------------------------
 
+EPILOG = """\
+automation:
+  Auto-init runs daily at 6:00 AM via launchd (com.dayos.autoinit).
+  Schedule notifications fire 5 min before each block (com.dayos.notify).
+
+  Install agents:
+    cp scripts/com.dayos.*.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.dayos.autoinit.plist
+    launchctl load ~/Library/LaunchAgents/com.dayos.notify.plist
+
+  Pause/resume notifications:
+    launchctl unload ~/Library/LaunchAgents/com.dayos.notify.plist
+    launchctl load  ~/Library/LaunchAgents/com.dayos.notify.plist
+
+  Logs: /tmp/dayos-autoinit.log, /tmp/dayos-notify.log
+
+calendar export:
+  python export_calendars.py    # generates .ics files in calendars/
+"""
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Minimal daily operating system CLI.")
+    parser = argparse.ArgumentParser(
+        description="Minimal daily operating system CLI.",
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     # init
