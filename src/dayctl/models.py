@@ -169,7 +169,9 @@ class DayPlan:
 
     @staticmethod
     def new(day_str: str, profile_key: str | None = None) -> DayPlan:
-        if profile_key and profile_key in SCHEDULE_PROFILES:
+        if profile_key is not None:
+            if profile_key not in SCHEDULE_PROFILES:
+                raise ValueError(f"Unknown profile '{profile_key}'. Valid: {', '.join(SCHEDULE_PROFILES)}")
             resolved_key = profile_key
         else:
             d = date.fromisoformat(day_str)
@@ -200,6 +202,13 @@ class DayPlan:
         if "profile" not in filtered and "day" in filtered:
             d = date.fromisoformat(filtered["day"])
             filtered["profile"] = _DOW_TO_PROFILE[d.weekday()]
+        # Normalize task dicts to ensure correct types
+        for key in ("app_tasks", "music_tasks"):
+            if key in filtered:
+                filtered[key] = [
+                    {"task": str(t.get("task", "")), "done": bool(t.get("done", False))}
+                    for t in filtered[key]
+                ]
         try:
             return cls(**filtered)
         except TypeError as e:
@@ -208,3 +217,10 @@ class DayPlan:
 
 def score_plan(plan: DayPlan) -> int:
     return sum(1 for key in NON_NEGOTIABLE_KEYS if plan.completed.get(key, False))
+
+
+def wake_time(plan: DayPlan) -> str:
+    """Extract the wake time from the first schedule entry."""
+    if plan.schedule:
+        return plan.schedule[0].split("  ", 1)[0]
+    return ""

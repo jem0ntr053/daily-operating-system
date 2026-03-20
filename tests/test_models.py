@@ -1,6 +1,6 @@
 """Tests for dayctl.models."""
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, profile_for_date, score_plan
+from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, profile_for_date, score_plan, wake_time
 
 
 def test_new_plan_defaults():
@@ -99,3 +99,24 @@ def test_new_plan_sunday_schedule():
     plan = DayPlan.new("2026-03-22")
     assert plan.fasting_window == "9:00 PM → 2:00 PM"
     assert plan.schedule[0] == "8:30 AM  Wake"
+
+
+def test_new_plan_invalid_profile_raises():
+    import pytest
+    with pytest.raises(ValueError, match="Unknown profile 'typo_profile'"):
+        DayPlan.new("2026-03-17", profile_key="typo_profile")
+
+
+def test_wake_time():
+    plan = DayPlan.new("2026-03-17")
+    assert wake_time(plan) == "6:30 AM"
+
+
+def test_from_dict_normalizes_task_types():
+    plan = DayPlan.new("2026-03-17")
+    data = plan.to_dict()
+    # Simulate corrupted data: int task, string done
+    data["app_tasks"] = [{"task": 42, "done": "yes"}]
+    restored = DayPlan.from_dict(data)
+    assert restored.app_tasks[0]["task"] == "42"
+    assert restored.app_tasks[0]["done"] is True

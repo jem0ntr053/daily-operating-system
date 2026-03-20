@@ -205,52 +205,55 @@ def main() -> None:
         # Profile override
         auto_profile = profile_for_date(day_str)
         profile_names = list(SCHEDULE_PROFILES.keys())
-        auto_idx = profile_names.index(auto_profile["label"].lower().replace(" ", "_").replace("-", "_"))  if False else None
-
-        # Detect current profile
+        # Detect current profile (single load for the entire sidebar)
         if plan_path(day_str).exists():
             plan = load_plan(day_str)
             current_key = getattr(plan, "profile", None)
         else:
+            plan = None
             current_key = None
+
+        auto_key = next(k for k, v in SCHEDULE_PROFILES.items() if v == auto_profile)
+        default_idx = profile_names.index(current_key) if current_key and current_key in profile_names else profile_names.index(auto_key)
 
         profile_key = st.selectbox(
             "Schedule Profile",
             profile_names,
-            index=profile_names.index(current_key) if current_key and current_key in profile_names else profile_names.index(
-                [k for k, v in SCHEDULE_PROFILES.items() if v == auto_profile][0]
-            ),
+            index=default_idx,
             format_func=lambda k: SCHEDULE_PROFILES[k]["label"],
         )
 
-        # Init / reinit
-        if not plan_path(day_str).exists():
+        # Init / reinit (preserve user data on profile switch)
+        if plan is None:
             plan = DayPlan.new(day_str, profile_key=profile_key)
             save_plan(plan)
-        else:
-            plan = load_plan(day_str)
-            if plan.profile != profile_key:
-                plan = DayPlan.new(day_str, profile_key=profile_key)
-                save_plan(plan)
+        elif plan.profile != profile_key:
+            new_plan = DayPlan.new(day_str, profile_key=profile_key)
+            new_plan.focus = plan.focus
+            new_plan.energy = plan.energy
+            new_plan.sleep_hours = plan.sleep_hours
+            new_plan.completed = plan.completed
+            new_plan.app_tasks = plan.app_tasks
+            new_plan.music_tasks = plan.music_tasks
+            new_plan.notes = plan.notes
+            plan = new_plan
+            save_plan(plan)
 
         st.divider()
 
         # Theme picker
+        config = load_config()
         theme_name = st.selectbox(
             "Theme",
             list(WEB_THEMES.keys()),
             index=list(WEB_THEMES.keys()).index(
-                load_config().get("theme", DEFAULT_WEB_THEME)
+                config.get("theme", DEFAULT_WEB_THEME)
             ),
         )
-        config = load_config()
         if config.get("theme") != theme_name:
             config["theme"] = theme_name
             save_config(config)
             st.rerun()
-
-    # Reload plan (may have changed via profile switch)
-    plan = load_plan(day_str)
 
     # --- Header ---
     st.markdown(

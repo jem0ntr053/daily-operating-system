@@ -10,7 +10,6 @@ from datetime import date
 
 from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, profile_for_date, score_plan
 from dayctl.themes import BOLD, RESET, get_theme
-from dayctl.storage import load_config
 
 
 # ---------------------------------------------------------------------------
@@ -25,10 +24,9 @@ def _supports_color() -> bool:
     return sys.stdout.isatty()
 
 
-def _active_theme() -> dict[str, str]:
-    """Load the user's configured theme (single call per render)."""
-    config = load_config()
-    return get_theme(config.get("theme"))
+def resolve_theme(theme_name: str | None = None) -> dict[str, str]:
+    """Resolve a theme by name. Used by callers to pass theme into display functions."""
+    return get_theme(theme_name)
 
 
 def _c(code: str, text: str) -> str:
@@ -87,15 +85,15 @@ def _render_check(t: dict[str, str], value: bool) -> str:
     return _c(t["red"], "✗")
 
 
-def render_check(value: bool) -> tuple[str, int]:
+def render_check(value: bool, theme: dict[str, str] | None = None) -> tuple[str, int]:
     """Public API: return (rendered string, raw length) for a check mark."""
-    t = _active_theme()
+    t = theme or resolve_theme()
     return _render_check(t, value), 1
 
 
-def render_checkbox(value: bool) -> str:
+def render_checkbox(value: bool, theme: dict[str, str] | None = None) -> str:
     """Legacy checkbox for non-box contexts."""
-    t = _active_theme()
+    t = theme or resolve_theme()
     if value:
         return _c(t["green"], "[x]")
     return _c(t["red"], "[ ]")
@@ -145,8 +143,8 @@ def _two_col(t: dict[str, str], left: str, right: str) -> str:
     return _box_row(t, content)
 
 
-def print_plan(plan: DayPlan) -> None:
-    t = _active_theme()
+def print_plan(plan: DayPlan, theme: dict[str, str] | None = None) -> None:
+    t = theme or resolve_theme()
     s = score_plan(plan)
     label = _get_profile_label(plan)
     date_hdr = _format_date_header(plan.day)
@@ -245,8 +243,9 @@ def _format_day_short(day_str: str) -> str:
 def print_score_table(
     rows: list[tuple[str, int | None]],
     highlight: str | None = None,
+    theme: dict[str, str] | None = None,
 ) -> None:
-    t = _active_theme()
+    t = theme or resolve_theme()
 
     if not rows:
         print(_c(t["muted"], "No data."))
