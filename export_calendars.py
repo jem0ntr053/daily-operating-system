@@ -11,6 +11,9 @@ from uuid import uuid4
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dayctl.models import SCHEDULE_PROFILES
+from dayctl.storage import load_config
+
+DEFAULT_TIMEZONE = "America/Chicago"
 
 
 # Map profile keys to RRULE BYDAY values
@@ -98,7 +101,7 @@ def fmt_ics_time(ref_date: str, hour: int, minute: int) -> str:
     return f"{ref_date}T{hour:02d}{minute:02d}00"
 
 
-def build_ics(profile_key: str, profile: dict) -> str:
+def build_ics(profile_key: str, profile: dict, timezone: str = DEFAULT_TIMEZONE) -> str:
     """Build an .ics file string for a single profile."""
     ref_date = PROFILE_REF_DATE[profile_key]
     rrule = PROFILE_RRULE[profile_key]
@@ -117,6 +120,7 @@ def build_ics(profile_key: str, profile: dict) -> str:
     for entry_str in profile["schedule"]:
         parsed = parse_schedule_entry(entry_str)
         if not parsed:
+            print(f"  Warning: could not parse '{entry_str}', skipping")
             continue
         events.append(parsed)
 
@@ -139,8 +143,8 @@ def build_ics(profile_key: str, profile: dict) -> str:
         lines += [
             "BEGIN:VEVENT",
             f"UID:{uid}",
-            f"DTSTART;TZID=America/Chicago:{dtstart}",
-            f"DTEND;TZID=America/Chicago:{dtend}",
+            f"DTSTART;TZID={timezone}:{dtstart}",
+            f"DTEND;TZID={timezone}:{dtend}",
             f"SUMMARY:{ev['summary']}",
             rrule,
             "END:VEVENT",
@@ -151,11 +155,15 @@ def build_ics(profile_key: str, profile: dict) -> str:
 
 
 def main() -> None:
+    config = load_config()
+    timezone = config.get("timezone", DEFAULT_TIMEZONE)
+
     out_dir = Path(__file__).parent / "calendars"
     out_dir.mkdir(exist_ok=True)
 
+    print(f"Timezone: {timezone}")
     for key, profile in SCHEDULE_PROFILES.items():
-        ics_content = build_ics(key, profile)
+        ics_content = build_ics(key, profile, timezone=timezone)
         filename = f"{key}.ics"
         path = out_dir / filename
         path.write_text(ics_content)

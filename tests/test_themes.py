@@ -31,3 +31,8 @@ def test_theme_has_all_roles():
     roles = {"green", "red", "yellow", "cyan", "purple", "orange", "pink", "accent", "heading", "muted"}
     for name, theme in THEMES.items():
         assert set(theme.keys()) == roles, f"Theme '{name}' missing roles"
+
+
+def test_cli_and_web_themes_have_same_keys():
+    from dayctl.web_themes import WEB_THEMES
+    assert set(THEMES.keys()) == set(WEB_THEMES.keys())

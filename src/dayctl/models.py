@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict, fields
-from datetime import date
+from datetime import date, timedelta
 from typing import Dict, List
 
 
@@ -138,6 +138,13 @@ def profile_for_date(day_str: str) -> dict:
     d = date.fromisoformat(day_str)
     key = _DOW_TO_PROFILE[d.weekday()]
     return SCHEDULE_PROFILES[key]
+
+
+def week_dates(reference: str) -> list[str]:
+    """Return Mon-Sun ISO date strings for the week containing reference date."""
+    d = date.fromisoformat(reference)
+    monday = d - timedelta(days=d.weekday())
+    return [(monday + timedelta(days=i)).isoformat() for i in range(7)]
 
 DEFAULT_TASKS = {
     "app": [
