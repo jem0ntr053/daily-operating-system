@@ -13,9 +13,9 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
-    score_plan, profile_for_date, compute_streak, carry_forward,
+    score_plan, profile_for_date, compute_streak,
 )
-from dayctl.storage import load_plan, save_plan, plan_path, list_days, load_config, save_config
+from dayctl.storage import load_plan, save_plan, plan_path, list_days, load_config, save_config, init_or_load_plan
 from dayctl.web_themes import WEB_THEMES, DEFAULT_WEB_THEME
 
 
@@ -234,17 +234,8 @@ def main() -> None:
                 profile_key = SHOW_TOGGLE.get(profile_key, profile_key)
 
         # Init / reinit (preserve user data on profile switch)
-        if plan is None:
-            plan = DayPlan.new(day_str, profile_key=profile_key)
-            # Carry forward incomplete tasks from previous day
-            yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
-            if plan_path(yesterday).exists():
-                prev = load_plan(yesterday)
-                carry_forward(plan, prev)
-            save_plan(plan)
-        elif plan.profile != profile_key:
-            plan.switch_profile(profile_key)
-            save_plan(plan)
+        if plan is None or plan.profile != profile_key:
+            plan, _ = init_or_load_plan(day_str, profile_key=profile_key)
 
         st.divider()
 
@@ -300,13 +291,14 @@ def main() -> None:
 
         st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
-        # --- Streak ---
-        _render_streak(t)
+        # --- Streak + Weekly Trend (single history scan) ---
+        all_days = list_days()
+        day_scores = [(d, score_plan(load_plan(d))) for d in all_days] if all_days else []
+        _render_streak(t, day_scores)
 
         st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
-        # --- Weekly Trend ---
-        _render_weekly_trend(day_str, t)
+        _render_weekly_trend(day_str, t, day_scores)
 
         st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
@@ -427,16 +419,10 @@ def _render_week_summary(day_str: str, t: dict[str, str]) -> None:
         )
 
 
-def _render_streak(t: dict[str, str]) -> None:
+def _render_streak(t: dict[str, str], day_scores: list[tuple[str, int]]) -> None:
     """Show current streak count."""
-    all_days = list_days()
-    if not all_days:
+    if not day_scores:
         return
-
-    day_scores = []
-    for d in all_days:
-        p = load_plan(d)
-        day_scores.append((d, score_plan(p)))
 
     streak = compute_streak(day_scores, threshold=3)
     if streak > 0:
@@ -452,22 +438,20 @@ def _render_streak(t: dict[str, str]) -> None:
         )
 
 
-def _render_weekly_trend(day_str: str, t: dict[str, str]) -> None:
+def _render_weekly_trend(day_str: str, t: dict[str, str], day_scores: list[tuple[str, int]]) -> None:
     """Show a bar chart of weekly score averages over recent weeks."""
-    all_days = list_days()
-    if not all_days:
+    if not day_scores:
         return
 
     # Group scores by ISO week
     weeks: dict[str, list[int]] = {}
-    for d in all_days:
+    for d, s in day_scores:
         dt = date.fromisoformat(d)
         monday = dt - timedelta(days=dt.weekday())
         week_key = monday.isoformat()
         if week_key not in weeks:
             weeks[week_key] = []
-        p = load_plan(d)
-        weeks[week_key].append(score_plan(p))
+        weeks[week_key].append(s)
 
     # Take last 8 weeks max
     sorted_weeks = sorted(weeks.items())[-8:]

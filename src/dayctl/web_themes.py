@@ -1,4 +1,7 @@
-"""Hex color themes for the web UI."""
+"""Hex color themes for the web UI.
+
+Keys must match dayctl.themes.THEMES — validated at import time.
+"""
 
 from __future__ import annotations
 
@@ -81,3 +84,21 @@ WEB_THEMES: dict[str, dict[str, str]] = {
 }
 
 DEFAULT_WEB_THEME = "dracula"
+
+
+def _validate_theme_keys() -> None:
+    from dayctl.themes import THEMES
+    cli_keys = set(THEMES.keys())
+    web_keys = set(WEB_THEMES.keys())
+    if cli_keys != web_keys:
+        missing_web = cli_keys - web_keys
+        missing_cli = web_keys - cli_keys
+        parts = []
+        if missing_web:
+            parts.append(f"missing from web: {missing_web}")
+        if missing_cli:
+            parts.append(f"missing from CLI: {missing_cli}")
+        raise AssertionError(f"Theme registries out of sync: {'; '.join(parts)}")
+
+
+_validate_theme_keys()

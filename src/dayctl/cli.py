@@ -7,9 +7,9 @@ from datetime import date, timedelta
 
 from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
-    score_plan, wake_time, compute_streak, carry_forward,
+    score_plan, wake_time, compute_streak, week_dates,
 )
-from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config
+from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config, init_or_load_plan
 from dayctl.display import print_plan, print_score_table, resolve_theme
 from dayctl.themes import list_themes
 
@@ -42,13 +42,21 @@ def resolve_date(raw: str | None) -> str | None:
         target_dow = _DAY_NAMES[low]
         today = date.today()
         diff = (today.weekday() - target_dow) % 7
-        if diff == 0:
-            diff = 0  # same day = today
         return (today - timedelta(days=diff)).isoformat()
-    return raw  # assume YYYY-MM-DD
+    # Validate YYYY-MM-DD format
+    try:
+        date.fromisoformat(raw)
+    except ValueError:
+        raise SystemExit(f"Invalid date '{raw}'. Use YYYY-MM-DD, 'today', 'yesterday', day name, or -N.")
+    return raw
 
 
 DATE_HELP = "Date: YYYY-MM-DD, 'today', 'yesterday', day name (mon-sunday), or -N (days ago)."
+
+
+def _cli_theme() -> dict:
+    """Load the user's CLI theme."""
+    return resolve_theme(load_config().get("theme"))
 
 
 # ---------------------------------------------------------------------------
@@ -62,20 +70,15 @@ def cmd_init(args: argparse.Namespace) -> None:
         print(f"Plan already exists: {path}")
         print("Use --force to overwrite.")
         return
+    # Delete existing so init_or_load_plan creates fresh
+    if path.exists():
+        path.unlink()
     profile_key = getattr(args, "profile", None)
-    plan = DayPlan.new(ds, profile_key=profile_key)
-
-    # Carry forward incomplete tasks from yesterday
-    yesterday = (date.fromisoformat(ds) - timedelta(days=1)).isoformat()
-    if plan_path(yesterday).exists():
-        prev = load_plan(yesterday)
-        carried = carry_forward(plan, prev)
-        if carried:
-            print(f"Carried forward {len(carried)} task(s) from yesterday:")
-            for desc in carried:
-                print(f"  + {desc}")
-
-    save_plan(plan)
+    plan, carried = init_or_load_plan(ds, profile_key=profile_key)
+    if carried:
+        print(f"Carried forward {len(carried)} task(s) from yesterday:")
+        for desc in carried:
+            print(f"  + {desc}")
     print(f"Created: {path} ({wake_time(plan)} wake)")
 
 
@@ -195,7 +198,7 @@ def cmd_task(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_week(args: argparse.Namespace) -> None:
-    t = resolve_theme(load_config().get("theme"))
+    t = _cli_theme()
     today = date.today()
     days = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     rows: list[tuple[str, int | None]] = []
@@ -217,7 +220,7 @@ def cmd_history(args: argparse.Namespace) -> None:
     if not all_days:
         print("No history yet.")
         return
-    t = resolve_theme(load_config().get("theme"))
+    t = _cli_theme()
     rows: list[tuple[str, int | None]] = []
     for d in all_days:
         plan = load_plan(d)
@@ -230,10 +233,9 @@ def cmd_history(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def cmd_summary(args: argparse.Namespace) -> None:
-    t = resolve_theme(load_config().get("theme"))
+    t = _cli_theme()
     today = date.today()
-    monday = today - timedelta(days=today.weekday())
-    days = [(monday + timedelta(days=i)).isoformat() for i in range(7)]
+    days = week_dates(today.isoformat())
     rows: list[tuple[str, int | None]] = []
     for d in days:
         if plan_path(d).exists():
@@ -258,11 +260,12 @@ def cmd_tonight(args: argparse.Namespace) -> None:
             f"Only available on Friday and Saturday."
         )
 
+    is_friday = plan.profile in ("friday", "friday_show")
     mode = getattr(args, "mode", None)
     if mode == "show":
-        target = "friday_show" if "friday" in plan.profile else "saturday_show"
+        target = "friday_show" if is_friday else "saturday_show"
     elif mode == "off":
-        target = "friday" if "friday" in plan.profile else "saturday_no_show"
+        target = "friday" if is_friday else "saturday_no_show"
     else:
         # Toggle
         target = SHOW_TOGGLE[plan.profile]

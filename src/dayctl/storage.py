@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
-from dayctl.models import DayPlan
+from dayctl.models import DayPlan, carry_forward
 
 
 DATA_DIR = Path.home() / ".dayctl"
@@ -41,6 +41,31 @@ def save_plan(plan: DayPlan) -> None:
     ensure_dirs()
     path = plan_path(plan.day)
     path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
+
+
+def init_or_load_plan(day_str: str, profile_key: str | None = None) -> tuple[DayPlan, list[str]]:
+    """Load existing plan or create a new one with carry-forward.
+
+    Returns (plan, carried) where carried is a list of task descriptions
+    that were carried forward from the previous day (empty if plan existed).
+    """
+    path = plan_path(day_str)
+    carried: list[str] = []
+
+    if path.exists():
+        plan = load_plan(day_str)
+        if profile_key and plan.profile != profile_key:
+            plan.switch_profile(profile_key)
+            save_plan(plan)
+    else:
+        plan = DayPlan.new(day_str, profile_key=profile_key)
+        yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
+        if plan_path(yesterday).exists():
+            prev = load_plan(yesterday)
+            carried = carry_forward(plan, prev)
+        save_plan(plan)
+
+    return plan, carried
 
 
 def list_days() -> list[str]:
