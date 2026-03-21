@@ -241,3 +241,54 @@ def wake_time(plan: DayPlan) -> str:
     if plan.schedule:
         return plan.schedule[0].split("  ", 1)[0]
     return ""
+
+
+def compute_streak(day_scores: list[tuple[str, int]], threshold: int = 3) -> int:
+    """Count consecutive days (ending today/most recent) with score >= threshold.
+
+    day_scores must be sorted chronologically [(oldest, score), ..., (newest, score)].
+    Gaps in dates break the streak.
+    """
+    if not day_scores:
+        return 0
+
+    streak = 0
+    prev_date: date | None = None
+
+    for day_str, score in reversed(day_scores):
+        d = date.fromisoformat(day_str)
+        if prev_date is not None and (prev_date - d).days != 1:
+            break  # gap in dates
+        if score < threshold:
+            break
+        streak += 1
+        prev_date = d
+
+    return streak
+
+
+def incomplete_tasks(plan: DayPlan) -> dict[str, list[dict]]:
+    """Return incomplete tasks from a plan, keyed by category."""
+    result: dict[str, list[dict]] = {}
+    for attr in ("app_tasks", "music_tasks"):
+        pending = [t for t in getattr(plan, attr) if not t.get("done", False)]
+        if pending:
+            result[attr] = [{"task": t["task"], "done": False} for t in pending]
+    return result
+
+
+def carry_forward(plan: DayPlan, previous: DayPlan) -> list[str]:
+    """Carry incomplete tasks from previous day into plan. Returns list of carried descriptions."""
+    carried: list[str] = []
+    existing: dict[str, set[str]] = {}
+    for attr in ("app_tasks", "music_tasks"):
+        existing[attr] = {str(t["task"]) for t in getattr(plan, attr)}
+
+    pending = incomplete_tasks(previous)
+    for attr, tasks in pending.items():
+        current = getattr(plan, attr)
+        for t in tasks:
+            if str(t["task"]) not in existing[attr]:
+                current.append({"task": t["task"], "done": False})
+                carried.append(f"{attr.replace('_tasks', '')}: {t['task']}")
+    return carried

@@ -13,9 +13,9 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
-    score_plan, profile_for_date,
+    score_plan, profile_for_date, compute_streak, carry_forward,
 )
-from dayctl.storage import load_plan, save_plan, plan_path, load_config, save_config
+from dayctl.storage import load_plan, save_plan, plan_path, list_days, load_config, save_config
 from dayctl.web_themes import WEB_THEMES, DEFAULT_WEB_THEME
 
 
@@ -236,6 +236,11 @@ def main() -> None:
         # Init / reinit (preserve user data on profile switch)
         if plan is None:
             plan = DayPlan.new(day_str, profile_key=profile_key)
+            # Carry forward incomplete tasks from previous day
+            yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
+            if plan_path(yesterday).exists():
+                prev = load_plan(yesterday)
+                carry_forward(plan, prev)
             save_plan(plan)
         elif plan.profile != profile_key:
             plan.switch_profile(profile_key)
@@ -292,6 +297,16 @@ def main() -> None:
         # --- Weekly Summary ---
         st.markdown(f"<div class='section-header'>Week Summary</div>", unsafe_allow_html=True)
         _render_week_summary(day_str, t)
+
+        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+
+        # --- Streak ---
+        _render_streak(t)
+
+        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
+
+        # --- Weekly Trend ---
+        _render_weekly_trend(day_str, t)
 
         st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
@@ -407,6 +422,80 @@ def _render_week_summary(day_str: str, t: dict[str, str]) -> None:
             f"<div style='display:flex;justify-content:space-between;padding:0.15rem 0;{weight}'>"
             f"<span>{marker} {day_label}</span>"
             f"<span>{score_text}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _render_streak(t: dict[str, str]) -> None:
+    """Show current streak count."""
+    all_days = list_days()
+    if not all_days:
+        return
+
+    day_scores = []
+    for d in all_days:
+        p = load_plan(d)
+        day_scores.append((d, score_plan(p)))
+
+    streak = compute_streak(day_scores, threshold=3)
+    if streak > 0:
+        st.markdown(
+            f"<div style='text-align:center;padding:0.5rem;background:{t['surface']};"
+            f"border-radius:0.5rem;border:1px solid {t['muted']}30'>"
+            f"<span style='font-size:1.5rem'>&#x1F525;</span> "
+            f"<span style='font-size:1.1rem;font-weight:bold;color:{t['green']}'>"
+            f"{streak} day streak</span>"
+            f"<span style='color:{t['muted']};font-size:0.85rem'> (>= 3/4)</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _render_weekly_trend(day_str: str, t: dict[str, str]) -> None:
+    """Show a bar chart of weekly score averages over recent weeks."""
+    all_days = list_days()
+    if not all_days:
+        return
+
+    # Group scores by ISO week
+    weeks: dict[str, list[int]] = {}
+    for d in all_days:
+        dt = date.fromisoformat(d)
+        monday = dt - timedelta(days=dt.weekday())
+        week_key = monday.isoformat()
+        if week_key not in weeks:
+            weeks[week_key] = []
+        p = load_plan(d)
+        weeks[week_key].append(score_plan(p))
+
+    # Take last 8 weeks max
+    sorted_weeks = sorted(weeks.items())[-8:]
+
+    st.markdown(f"<div class='section-header'>Weekly Trend</div>", unsafe_allow_html=True)
+
+    for week_key, scores in sorted_weeks:
+        monday = date.fromisoformat(week_key)
+        label = f"{monday.strftime('%m/%d')}"
+        avg = sum(scores) / len(scores)
+        pct = int(avg / 4 * 100)
+
+        current_week = day_str and (
+            date.fromisoformat(day_str) - timedelta(days=date.fromisoformat(day_str).weekday())
+        ).isoformat() == week_key
+
+        color = score_color(round(avg), t)
+        weight = "font-weight:bold" if current_week else ""
+        marker = f"<span style='color:{t['cyan']}'>▸</span>" if current_week else "&nbsp;"
+
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:0.5rem;padding:0.15rem 0;{weight}'>"
+            f"<span style='min-width:3.5rem'>{marker} {label}</span>"
+            f"<div style='flex:1;height:8px;background:{t['surface']};border-radius:4px;overflow:hidden'>"
+            f"<div style='width:{pct}%;height:100%;background:{color};border-radius:4px'></div>"
+            f"</div>"
+            f"<span style='min-width:2.5rem;text-align:right;color:{color};font-size:0.85rem'>"
+            f"{avg:.1f}/4</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
