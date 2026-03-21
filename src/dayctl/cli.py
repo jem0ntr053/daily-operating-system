@@ -5,7 +5,10 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
-from dayctl.models import DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE, score_plan, wake_time
+from dayctl.models import (
+    DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
+    score_plan, wake_time, compute_streak, carry_forward,
+)
 from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config
 from dayctl.display import print_plan, print_score_table, resolve_theme
 from dayctl.themes import list_themes
@@ -15,6 +18,14 @@ from dayctl.themes import list_themes
 # Date resolution
 # ---------------------------------------------------------------------------
 
+_DAY_NAMES = {
+    "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+    "friday": 4, "saturday": 5, "sunday": 6,
+    "mon": 0, "tue": 1, "wed": 2, "thu": 3,
+    "fri": 4, "sat": 5, "sun": 6,
+}
+
+
 def resolve_date(raw: str | None) -> str | None:
     if raw is None:
         return None
@@ -23,10 +34,21 @@ def resolve_date(raw: str | None) -> str | None:
         return date.today().isoformat()
     if low == "yesterday":
         return (date.today() - timedelta(days=1)).isoformat()
+    # Relative offset: -1, -2, etc.
+    if low.startswith("-") and low[1:].isdigit():
+        return (date.today() - timedelta(days=int(low[1:]))).isoformat()
+    # Day name: monday, tue, etc. — most recent occurrence
+    if low in _DAY_NAMES:
+        target_dow = _DAY_NAMES[low]
+        today = date.today()
+        diff = (today.weekday() - target_dow) % 7
+        if diff == 0:
+            diff = 0  # same day = today
+        return (today - timedelta(days=diff)).isoformat()
     return raw  # assume YYYY-MM-DD
 
 
-DATE_HELP = "Date: YYYY-MM-DD, 'today', or 'yesterday'."
+DATE_HELP = "Date: YYYY-MM-DD, 'today', 'yesterday', day name (mon-sunday), or -N (days ago)."
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +64,17 @@ def cmd_init(args: argparse.Namespace) -> None:
         return
     profile_key = getattr(args, "profile", None)
     plan = DayPlan.new(ds, profile_key=profile_key)
+
+    # Carry forward incomplete tasks from yesterday
+    yesterday = (date.fromisoformat(ds) - timedelta(days=1)).isoformat()
+    if plan_path(yesterday).exists():
+        prev = load_plan(yesterday)
+        carried = carry_forward(plan, prev)
+        if carried:
+            print(f"Carried forward {len(carried)} task(s) from yesterday:")
+            for desc in carried:
+                print(f"  + {desc}")
+
     save_plan(plan)
     print(f"Created: {path} ({wake_time(plan)} wake)")
 
@@ -244,6 +277,30 @@ def cmd_tonight(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# New: streak
+# ---------------------------------------------------------------------------
+
+def cmd_streak(args: argparse.Namespace) -> None:
+    all_days = list_days()
+    if not all_days:
+        print("No history yet.")
+        return
+
+    day_scores = []
+    for d in all_days:
+        plan = load_plan(d)
+        day_scores.append((d, score_plan(plan)))
+
+    threshold = getattr(args, "threshold", 3)
+    streak = compute_streak(day_scores, threshold=threshold)
+
+    if streak == 0:
+        print(f"No active streak (threshold: {threshold}/4).")
+    else:
+        print(f"Current streak: {streak} day{'s' if streak != 1 else ''} (>= {threshold}/4)")
+
+
+# ---------------------------------------------------------------------------
 # New: config
 # ---------------------------------------------------------------------------
 
@@ -300,7 +357,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage="day <command> [options]",
     )
-    sub = parser.add_subparsers(dest="command", required=True, title="commands", metavar="")
+    sub = parser.add_subparsers(dest="command", title="commands", metavar="")
 
     # init
     p_init = sub.add_parser("init", help="Create today's plan file.")
@@ -377,6 +434,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_week = sub.add_parser("week", help="Show scores for the past 7 days.")
     p_week.set_defaults(func=cmd_week)
 
+    # streak
+    p_streak = sub.add_parser("streak", help="Show current streak (consecutive days >= threshold).")
+    p_streak.add_argument("--threshold", type=int, default=3, help="Minimum score to count (default: 3).")
+    p_streak.set_defaults(func=cmd_streak)
+
     # history
     p_history = sub.add_parser("history", help="Show scores across all tracked days.")
     p_history.set_defaults(func=cmd_history)
@@ -397,6 +459,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    if args.command is None:
+        # Default to 'show' when no subcommand given
+        args = parser.parse_args(["show"])
     args.func(args)
 
 
