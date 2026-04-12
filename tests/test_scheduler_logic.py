@@ -41,3 +41,37 @@ def test_handles_quiet_until(monkeypatch):
     now = datetime(2026, 4, 12, 7, 0, 30)
     last = datetime(2026, 4, 12, 6, 59, 0)
     assert should_fire_now(_profile(), now, last) == []
+
+
+def test_tick_calls_poster_for_fires(monkeypatch):
+    from datetime import datetime
+    from dayctl.server.scheduler import tick_once
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    posted: list[dict] = []
+
+    def fake_post(topic, title, body, priority):
+        posted.append({"topic": topic, "title": title, "body": body})
+
+    now = datetime(2026, 4, 12, 7, 0, 30)
+    last = datetime(2026, 4, 12, 6, 59, 0)
+    profile = {"schedule": ["7:00 AM  App Work"]}
+    tick_once(profile=profile, now=now, last_tick=last, poster=fake_post, plan=None)
+    assert len(posted) == 1
+    assert posted[0]["title"] == "App Work"
+
+
+def test_tick_noop_when_no_topic(monkeypatch):
+    from datetime import datetime
+    from dayctl.server.scheduler import tick_once
+
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    calls: list = []
+    tick_once(
+        profile={"schedule": ["7:00 AM  Work"]},
+        now=datetime(2026, 4, 12, 7, 0, 30),
+        last_tick=datetime(2026, 4, 12, 6, 59, 0),
+        poster=lambda *a, **kw: calls.append(a),
+        plan=None,
+    )
+    assert calls == []
