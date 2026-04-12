@@ -8,7 +8,10 @@ from fastapi import Header, HTTPException, Request
 
 
 def _expected_token() -> str:
-    return os.environ.get("DAYCTL_TOKEN", "")
+    tok = os.environ.get("DAYCTL_TOKEN", "")
+    if not tok:
+        raise RuntimeError("DAYCTL_TOKEN env var not set")
+    return tok
 
 
 def require_token(
