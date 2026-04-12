@@ -68,6 +68,14 @@ def init_or_load_plan(day_str: str, profile_key: str | None = None) -> tuple[Day
     return plan, carried
 
 
+def exists(day_str: str) -> bool:
+    return _backend().exists(day_str)
+
+
+def delete_plan(day_str: str) -> None:
+    _backend().delete_plan(day_str)
+
+
 def load_config() -> dict:
     ensure_dirs()
     if not CONFIG_PATH.exists():

@@ -9,7 +9,7 @@ from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
     score_plan, wake_time, compute_streak, week_dates,
 )
-from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config, init_or_load_plan
+from dayctl.storage import load_plan, save_plan, list_days, today_str, load_config, save_config, init_or_load_plan, exists, delete_plan
 from dayctl.display import print_plan, print_score_table, resolve_theme
 from dayctl.themes import list_themes
 
@@ -65,21 +65,20 @@ def _cli_theme() -> dict:
 
 def cmd_init(args: argparse.Namespace) -> None:
     ds = resolve_date(args.date) or today_str()
-    path = plan_path(ds)
-    if path.exists() and not args.force:
-        print(f"Plan already exists: {path}")
+    if exists(ds) and not args.force:
+        print(f"Plan already exists for {ds}")
         print("Use --force to overwrite.")
         return
     # Delete existing so init_or_load_plan creates fresh
-    if path.exists():
-        path.unlink()
+    if exists(ds):
+        delete_plan(ds)
     profile_key = getattr(args, "profile", None)
     plan, carried = init_or_load_plan(ds, profile_key=profile_key)
     if carried:
         print(f"Carried forward {len(carried)} task(s) from yesterday:")
         for desc in carried:
             print(f"  + {desc}")
-    print(f"Created: {path} ({wake_time(plan)} wake)")
+    print(f"Created: {ds} ({wake_time(plan)} wake)")
 
 
 def cmd_show(args: argparse.Namespace) -> None:
@@ -203,7 +202,7 @@ def cmd_week(args: argparse.Namespace) -> None:
     days = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     rows: list[tuple[str, int | None]] = []
     for d in days:
-        if plan_path(d).exists():
+        if exists(d):
             plan = load_plan(d)
             rows.append((d, score_plan(plan)))
         else:
@@ -238,7 +237,7 @@ def cmd_summary(args: argparse.Namespace) -> None:
     days = week_dates(today.isoformat())
     rows: list[tuple[str, int | None]] = []
     for d in days:
-        if plan_path(d).exists():
+        if exists(d):
             plan = load_plan(d)
             rows.append((d, score_plan(plan)))
         else:

@@ -12,5 +12,10 @@ def day_env(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DATA_DIR", tmp_path)
     monkeypatch.setattr(storage, "DAYS_DIR", tmp_path / "days")
     monkeypatch.setattr(storage, "CONFIG_PATH", tmp_path / "config.json")
-    monkeypatch.setattr(storage, "_backend", lambda: JSONBackend(root=tmp_path / "days"))
-    return tmp_path
+    monkeypatch.setattr(storage, "select_backend",
+                        lambda: JSONBackend(root=tmp_path / "days"))
+    storage._reset_backend_cache()
+
+    yield tmp_path
+
+    storage._reset_backend_cache()

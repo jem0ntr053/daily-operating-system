@@ -18,6 +18,7 @@ class JSONBackend:
         return self.root / f"{day_str}.json"
 
     def exists(self, day_str: str) -> bool:
+        self._ensure()
         return self._path(day_str).exists()
 
     def load_plan(self, day_str: str) -> DayPlan:
