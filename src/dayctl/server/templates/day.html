@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<main>
+  <header>
+    <h1>{{ plan.day }}</h1>
+    <p class="focus">{{ plan.focus or "(no focus set)" }}</p>
+    <p class="score">Score: {{ score }}/4</p>
+  </header>
+
+  <section>
+    <h2>App</h2>
+    <ul id="app-tasks">
+      {% for t in plan.app_tasks %}
+        {% set cat = "app" %}
+        {% set idx = loop.index0 %}
+        {% include "_task_row.html" %}
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Music</h2>
+    <ul id="music-tasks">
+      {% for t in plan.music_tasks %}
+        {% set cat = "music" %}
+        {% set idx = loop.index0 %}
+        {% include "_task_row.html" %}
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Schedule</h2>
+    <ul class="schedule">
+      {% for line in plan.schedule %}<li>{{ line }}</li>{% endfor %}
+    </ul>
+  </section>
+</main>
+{% endblock %}

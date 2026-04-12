@@ -1,0 +1,10 @@
+<li id="task-{{ cat }}-{{ idx }}" class="task {% if t.done %}done{% endif %}">
+  <form hx-post="/web/day/{{ plan.day }}/tasks/{{ cat }}/{{ idx }}/toggle"
+        hx-target="#task-{{ cat }}-{{ idx }}"
+        hx-swap="outerHTML">
+    <button type="submit" aria-label="toggle">
+      <input type="checkbox" {% if t.done %}checked{% endif %} disabled>
+    </button>
+    <span>{{ t.task }}</span>
+  </form>
+</li>
