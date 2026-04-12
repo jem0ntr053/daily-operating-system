@@ -1,16 +1,27 @@
-"""Filesystem persistence for dayctl."""
-
+"""Filesystem persistence for dayctl — delegates to the selected backend."""
 from __future__ import annotations
 
 import json
 from datetime import date, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 from dayctl.models import DayPlan, carry_forward
-
+from dayctl.storage_backends import select_backend
 
 DATA_DIR = Path.home() / ".dayctl"
 DAYS_DIR = DATA_DIR / "days"
+CONFIG_PATH = DATA_DIR / "config.json"
+
+
+@lru_cache(maxsize=1)
+def _backend():
+    return select_backend()
+
+
+def _reset_backend_cache() -> None:
+    """Test hook: clear cached backend after env changes."""
+    _backend.cache_clear()
 
 
 def ensure_dirs() -> None:
@@ -26,63 +37,38 @@ def plan_path(day_str: str) -> Path:
 
 
 def load_plan(day_str: str | None = None) -> DayPlan:
-    ensure_dirs()
     ds = day_str or today_str()
-    path = plan_path(ds)
-    if not path.exists():
-        plan = DayPlan.new(ds)
-        save_plan(plan)
-        return plan
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return DayPlan.from_dict(data)
+    return _backend().load_plan(ds)
 
 
 def save_plan(plan: DayPlan) -> None:
-    ensure_dirs()
-    path = plan_path(plan.day)
-    path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
-
-
-def init_or_load_plan(day_str: str, profile_key: str | None = None) -> tuple[DayPlan, list[str]]:
-    """Load existing plan or create a new one with carry-forward.
-
-    Returns (plan, carried) where carried is a list of task descriptions
-    that were carried forward from the previous day (empty if plan existed).
-    """
-    path = plan_path(day_str)
-    carried: list[str] = []
-
-    if path.exists():
-        plan = load_plan(day_str)
-        if profile_key and plan.profile != profile_key:
-            plan.switch_profile(profile_key)
-            save_plan(plan)
-    else:
-        plan = DayPlan.new(day_str, profile_key=profile_key)
-        yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
-        if plan_path(yesterday).exists():
-            prev = load_plan(yesterday)
-            carried = carry_forward(plan, prev)
-        save_plan(plan)
-
-    return plan, carried
+    _backend().save_plan(plan)
 
 
 def list_days() -> list[str]:
-    """Return sorted list of YYYY-MM-DD strings for all saved day files."""
-    ensure_dirs()
-    return sorted(p.stem for p in DAYS_DIR.glob("*.json"))
+    return _backend().list_days()
 
 
-# ---------------------------------------------------------------------------
-# Config (theme, etc.)
-# ---------------------------------------------------------------------------
-
-CONFIG_PATH = DATA_DIR / "config.json"
+def init_or_load_plan(day_str: str, profile_key: str | None = None) -> tuple[DayPlan, list[str]]:
+    """Load existing plan or create a new one with carry-forward."""
+    b = _backend()
+    carried: list[str] = []
+    if b.exists(day_str):
+        plan = b.load_plan(day_str)
+        if profile_key and plan.profile != profile_key:
+            plan.switch_profile(profile_key)
+            b.save_plan(plan)
+    else:
+        plan = DayPlan.new(day_str, profile_key=profile_key)
+        yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
+        if b.exists(yesterday):
+            prev = b.load_plan(yesterday)
+            carried = carry_forward(plan, prev)
+        b.save_plan(plan)
+    return plan, carried
 
 
 def load_config() -> dict:
-    """Load user config from ~/.dayctl/config.json."""
     ensure_dirs()
     if not CONFIG_PATH.exists():
         return {}
@@ -90,6 +76,5 @@ def load_config() -> dict:
 
 
 def save_config(config: dict) -> None:
-    """Save user config to ~/.dayctl/config.json."""
     ensure_dirs()
     CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
