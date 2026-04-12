@@ -359,6 +359,8 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage="day <command> [options]",
     )
+    parser.add_argument("--remote", help="Base URL of a remote dayctl server (overrides DAYCTL_REMOTE env)")
+    parser.add_argument("--token", help="Bearer token for remote server (overrides DAYCTL_TOKEN env)")
     sub = parser.add_subparsers(dest="command", title="commands", metavar="")
 
     # init
@@ -459,8 +461,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    import os
     parser = build_parser()
     args = parser.parse_args()
+    if args.remote:
+        os.environ["DAYCTL_REMOTE"] = args.remote
+    if args.token:
+        os.environ["DAYCTL_TOKEN"] = args.token
+    if args.remote or args.token:
+        from dayctl.storage import _reset_backend_cache
+        _reset_backend_cache()
     if args.command is None:
         # Default to 'show' when no subcommand given
         args = parser.parse_args(["show"])
