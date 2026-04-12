@@ -75,3 +75,10 @@ def test_list_days(client):
     r = client.get("/api/days", headers=AUTH)
     assert r.status_code == 200
     assert "2026-04-12" in r.json()["days"]
+
+
+def test_rejects_malformed_day(client):
+    r = client.get("/api/days/not-a-date", headers=AUTH)
+    assert r.status_code == 422
+    r = client.get("/api/days/..%2F..%2Fetc/passwd", headers=AUTH)
+    assert r.status_code in (404, 422)

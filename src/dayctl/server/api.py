@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel
 
 from dayctl.models import DayPlan
@@ -29,12 +29,12 @@ def list_all_days() -> dict:
 
 
 @router.get("/days/{day}")
-def get_day(day: str) -> dict:
+def get_day(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$")) -> dict:
     return load_plan(day).to_dict()
 
 
 @router.put("/days/{day}")
-def put_day(day: str, payload: dict) -> dict:
+def put_day(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), payload: dict = ...) -> dict:
     if payload.get("day") != day:
         raise HTTPException(400, "payload day mismatch")
     plan = DayPlan.from_dict(payload)
@@ -43,7 +43,7 @@ def put_day(day: str, payload: dict) -> dict:
 
 
 @router.post("/days/{day}/tasks/{cat}")
-def add_task(day: str, cat: Category, body: TaskBody) -> dict:
+def add_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., body: TaskBody = ...) -> dict:
     plan = load_plan(day)
     getattr(plan, _tasks_attr(cat)).append({"task": body.task, "done": False})
     save_plan(plan)
@@ -51,7 +51,7 @@ def add_task(day: str, cat: Category, body: TaskBody) -> dict:
 
 
 @router.post("/days/{day}/tasks/{cat}/{idx}/toggle")
-def toggle_task(day: str, cat: Category, idx: int) -> dict:
+def toggle_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., idx: int = ...) -> dict:
     plan = load_plan(day)
     tasks = getattr(plan, _tasks_attr(cat))
     if idx < 0 or idx >= len(tasks):
@@ -62,7 +62,7 @@ def toggle_task(day: str, cat: Category, idx: int) -> dict:
 
 
 @router.delete("/days/{day}/tasks/{cat}/{idx}")
-def delete_task(day: str, cat: Category, idx: int) -> dict:
+def delete_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., idx: int = ...) -> dict:
     plan = load_plan(day)
     tasks = getattr(plan, _tasks_attr(cat))
     if idx < 0 or idx >= len(tasks):
