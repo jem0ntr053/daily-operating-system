@@ -34,3 +34,17 @@ def test_remote_list_days(remote):
     from dayctl.models import DayPlan
     remote.save_plan(DayPlan.new("2026-04-12"))
     assert "2026-04-12" in remote.list_days()
+
+
+def test_remote_exists(remote):
+    from dayctl.models import DayPlan
+    assert remote.exists("2026-04-12") is False
+    remote.save_plan(DayPlan.new("2026-04-12"))
+    assert remote.exists("2026-04-12") is True
+
+
+def test_remote_delete(remote):
+    from dayctl.models import DayPlan
+    remote.save_plan(DayPlan.new("2026-04-12"))
+    remote.delete_plan("2026-04-12")
+    assert remote.exists("2026-04-12") is False

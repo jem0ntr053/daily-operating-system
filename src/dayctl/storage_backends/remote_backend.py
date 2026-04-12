@@ -21,7 +21,13 @@ class RemoteBackend:
         return {"Authorization": f"Bearer {self.token}"}
 
     def exists(self, day_str: str) -> bool:
-        return day_str in self.list_days()
+        r = self._http().head(f"/api/days/{day_str}", headers=self._headers())
+        if r.status_code == 204:
+            return True
+        if r.status_code == 404:
+            return False
+        r.raise_for_status()
+        return False
 
     def load_plan(self, day_str: str) -> DayPlan:
         r = self._http().get(f"/api/days/{day_str}", headers=self._headers())
@@ -40,4 +46,5 @@ class RemoteBackend:
         return r.json()["days"]
 
     def delete_plan(self, day_str: str) -> None:
-        raise NotImplementedError("delete not exposed over API in v1")
+        r = self._http().delete(f"/api/days/{day_str}", headers=self._headers())
+        r.raise_for_status()
