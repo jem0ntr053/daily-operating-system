@@ -1,5 +1,7 @@
-import os
 import pytest
+pytest.importorskip("fastapi")
+
+import os
 from fastapi.testclient import TestClient
 
 

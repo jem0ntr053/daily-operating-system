@@ -7,6 +7,10 @@ from dayctl.server.auth import require_token
 
 
 def create_app() -> FastAPI:
+    import os
+    if not os.environ.get("DAYCTL_TOKEN"):
+        raise RuntimeError("DAYCTL_TOKEN env var is required to start the dayctl server")
+
     app = FastAPI(title="dayctl")
 
     @app.get("/health")
