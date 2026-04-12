@@ -39,7 +39,16 @@ def test_login_sets_cookie(client):
 
 def test_toggle_returns_updated_fragment(client):
     client.get("/day/2026-04-12")
-    r = client.post("/web/day/2026-04-12/tasks/app/0/toggle")
+    r = client.post(
+        "/web/day/2026-04-12/tasks/app/0/toggle",
+        headers={"HX-Request": "true"},
+    )
     assert r.status_code == 200
     content = r.content.lower()
     assert b"checked" in content or b"done" in content
+
+
+def test_toggle_rejects_non_htmx(client):
+    client.get("/day/2026-04-12")
+    r = client.post("/web/day/2026-04-12/tasks/app/0/toggle")
+    assert r.status_code == 403

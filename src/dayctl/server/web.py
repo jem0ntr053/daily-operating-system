@@ -31,7 +31,7 @@ def login(token: str) -> RedirectResponse:
     if not expected or not hmac.compare_digest(token, expected):
         raise HTTPException(401, "bad token")
     resp = RedirectResponse(url="/", status_code=302)
-    resp.set_cookie("dayctl_token", token, httponly=True, samesite="lax")
+    resp.set_cookie("dayctl_token", token, httponly=True, secure=True, samesite="strict")
     return resp
 
 
@@ -64,6 +64,8 @@ def toggle_task(
     idx: int,
     day: str = PathParam(..., pattern=_DAY_PATTERN),
 ) -> HTMLResponse:
+    if request.headers.get("HX-Request") != "true":
+        raise HTTPException(403, "HTMX request required")
     plan = load_plan(day)
     tasks = getattr(plan, f"{cat}_tasks")
     if idx < 0 or idx >= len(tasks):
