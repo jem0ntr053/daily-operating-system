@@ -9,7 +9,7 @@ from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
     score_plan, wake_time, compute_streak, week_dates,
 )
-from dayctl.storage import load_plan, save_plan, plan_path, list_days, today_str, load_config, save_config, init_or_load_plan
+from dayctl.storage import load_plan, save_plan, list_days, today_str, load_config, save_config, init_or_load_plan, exists, delete_plan
 from dayctl.display import print_plan, print_score_table, resolve_theme
 from dayctl.themes import list_themes
 
@@ -65,21 +65,20 @@ def _cli_theme() -> dict:
 
 def cmd_init(args: argparse.Namespace) -> None:
     ds = resolve_date(args.date) or today_str()
-    path = plan_path(ds)
-    if path.exists() and not args.force:
-        print(f"Plan already exists: {path}")
+    if exists(ds) and not args.force:
+        print(f"Plan already exists for {ds}")
         print("Use --force to overwrite.")
         return
     # Delete existing so init_or_load_plan creates fresh
-    if path.exists():
-        path.unlink()
+    if exists(ds):
+        delete_plan(ds)
     profile_key = getattr(args, "profile", None)
     plan, carried = init_or_load_plan(ds, profile_key=profile_key)
     if carried:
         print(f"Carried forward {len(carried)} task(s) from yesterday:")
         for desc in carried:
             print(f"  + {desc}")
-    print(f"Created: {path} ({wake_time(plan)} wake)")
+    print(f"Created: {ds} ({wake_time(plan)} wake)")
 
 
 def cmd_show(args: argparse.Namespace) -> None:
@@ -203,7 +202,7 @@ def cmd_week(args: argparse.Namespace) -> None:
     days = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     rows: list[tuple[str, int | None]] = []
     for d in days:
-        if plan_path(d).exists():
+        if exists(d):
             plan = load_plan(d)
             rows.append((d, score_plan(plan)))
         else:
@@ -238,7 +237,7 @@ def cmd_summary(args: argparse.Namespace) -> None:
     days = week_dates(today.isoformat())
     rows: list[tuple[str, int | None]] = []
     for d in days:
-        if plan_path(d).exists():
+        if exists(d):
             plan = load_plan(d)
             rows.append((d, score_plan(plan)))
         else:
@@ -304,6 +303,22 @@ def cmd_streak(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# New: push / pull
+# ---------------------------------------------------------------------------
+
+def push_day(day_str, local, remote) -> None:
+    """Copy a day from local backend to remote backend."""
+    plan = local.load_plan(day_str)
+    remote.save_plan(plan)
+
+
+def pull_day(day_str, local, remote) -> None:
+    """Copy a day from remote backend to local backend."""
+    plan = remote.load_plan(day_str)
+    local.save_plan(plan)
+
+
+# ---------------------------------------------------------------------------
 # New: config
 # ---------------------------------------------------------------------------
 
@@ -326,6 +341,34 @@ def cmd_config(args: argparse.Namespace) -> None:
         print(f"Theme set to: {value.lower()}")
     else:
         raise SystemExit(f"Unknown config key '{key}'. Available: theme")
+
+
+def cmd_push(args: argparse.Namespace) -> None:
+    import os
+    from pathlib import Path
+    from dayctl.storage_backends.json_backend import JSONBackend
+    from dayctl.storage_backends.remote_backend import RemoteBackend
+    if not os.environ.get("DAYCTL_REMOTE"):
+        raise SystemExit("DAYCTL_REMOTE not set (or pass --remote)")
+    day_str = resolve_date(args.date)
+    local = JSONBackend(root=Path.home() / ".dayctl" / "days")
+    remote = RemoteBackend(os.environ["DAYCTL_REMOTE"], os.environ.get("DAYCTL_TOKEN", ""))
+    push_day(day_str, local, remote)
+    print(f"Pushed {day_str}")
+
+
+def cmd_pull(args: argparse.Namespace) -> None:
+    import os
+    from pathlib import Path
+    from dayctl.storage_backends.json_backend import JSONBackend
+    from dayctl.storage_backends.remote_backend import RemoteBackend
+    if not os.environ.get("DAYCTL_REMOTE"):
+        raise SystemExit("DAYCTL_REMOTE not set (or pass --remote)")
+    day_str = resolve_date(args.date)
+    local = JSONBackend(root=Path.home() / ".dayctl" / "days")
+    remote = RemoteBackend(os.environ["DAYCTL_REMOTE"], os.environ.get("DAYCTL_TOKEN", ""))
+    pull_day(day_str, local, remote)
+    print(f"Pulled {day_str}")
 
 
 # ---------------------------------------------------------------------------
@@ -360,6 +403,8 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage="day <command> [options]",
     )
+    parser.add_argument("--remote", help="Base URL of a remote dayctl server (overrides DAYCTL_REMOTE env)")
+    parser.add_argument("--token", help="Bearer token for remote server (overrides DAYCTL_TOKEN env)")
     sub = parser.add_subparsers(dest="command", title="commands", metavar="")
 
     # init
@@ -456,12 +501,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_config.add_argument("value", nargs="?", default=None, help="Value to set (omit to view current)")
     p_config.set_defaults(func=cmd_config)
 
+    # push
+    p_push = sub.add_parser("push", help="Push a day from local to remote")
+    p_push.add_argument("date", nargs="?", default="today")
+    p_push.set_defaults(func=cmd_push)
+
+    # pull
+    p_pull = sub.add_parser("pull", help="Pull a day from remote to local")
+    p_pull.add_argument("date", nargs="?", default="today")
+    p_pull.set_defaults(func=cmd_pull)
+
     return parser
 
 
 def main() -> None:
+    import os
     parser = build_parser()
     args = parser.parse_args()
+    if args.remote:
+        os.environ["DAYCTL_REMOTE"] = args.remote
+    if args.token:
+        os.environ["DAYCTL_TOKEN"] = args.token
+    if args.remote or args.token:
+        from dayctl.storage import _reset_backend_cache
+        _reset_backend_cache()
     if args.command is None:
         # Default to 'show' when no subcommand given
         args = parser.parse_args(["show"])

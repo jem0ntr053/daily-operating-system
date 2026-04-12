@@ -141,3 +141,28 @@ python export_calendars.py    # outputs to calendars/
 ## Data
 
 Plans are stored as JSON in `~/.dayctl/days/`. Both `day` and `dayctl` work as commands.
+
+## Remote deployment (Fly.io)
+
+The FastAPI server can be deployed to Fly.io for phone access and push reminders via ntfy.sh.
+
+1. `pip install -e '.[server]'` locally to verify the server boots.
+2. `fly launch --no-deploy` (edit generated `fly.toml` to match the one in this repo, or accept ours).
+3. `fly volumes create dayctl_data --size 1`
+4. `fly secrets set DAYCTL_TOKEN=$(openssl rand -hex 32) NTFY_TOPIC=https://ntfy.sh/<your-private-topic>`
+5. `fly deploy`
+6. Open `https://<app>.fly.dev/login?token=<token>` on your phone and Add to Home Screen.
+
+On your laptop, point the CLI at the server when you want shared state:
+
+```
+export DAYCTL_REMOTE=https://<app>.fly.dev
+export DAYCTL_TOKEN=<token>
+day today
+```
+
+Manual sync between local JSON and remote: `day push <date>` / `day pull <date>`.
+
+### Reminders (ntfy.sh)
+
+Set `NTFY_TOPIC` to a private ntfy topic URL (e.g., `https://ntfy.sh/longrandomstring`). Subscribe to the topic on your phone via the ntfy iOS/Android app. The server posts a notification at each schedule block boundary. Optional env: `NTFY_AUTH` (bearer token for protected topics), `DAYCTL_QUIET_UNTIL=YYYY-MM-DD` (suppress reminders through that date).
