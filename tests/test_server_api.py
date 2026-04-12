@@ -29,3 +29,49 @@ def test_api_requires_auth(client):
 def test_api_accepts_valid_token(client):
     r = client.get("/api/days/2026-04-12", headers={"Authorization": "Bearer testtoken"})
     assert r.status_code == 200
+
+
+AUTH = {"Authorization": "Bearer testtoken"}
+
+
+def test_put_day_replaces_plan(client):
+    from dayctl.models import DayPlan
+    p = DayPlan.new("2026-04-12")
+    p.focus = "updated"
+    r = client.put("/api/days/2026-04-12", json=p.to_dict(), headers=AUTH)
+    assert r.status_code == 200
+    assert client.get("/api/days/2026-04-12", headers=AUTH).json()["focus"] == "updated"
+
+
+def test_toggle_app_task(client):
+    client.get("/api/days/2026-04-12", headers=AUTH)  # create
+    r = client.post("/api/days/2026-04-12/tasks/app/0/toggle", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["app_tasks"][0]["done"] is True
+
+
+def test_add_app_task(client):
+    r = client.post(
+        "/api/days/2026-04-12/tasks/app",
+        json={"task": "new thing"},
+        headers=AUTH,
+    )
+    assert r.status_code == 200
+    assert any(t["task"] == "new thing" for t in r.json()["app_tasks"])
+
+
+def test_delete_app_task(client):
+    client.post("/api/days/2026-04-12/tasks/app", json={"task": "gone"}, headers=AUTH)
+    plan = client.get("/api/days/2026-04-12", headers=AUTH).json()
+    idx = next(i for i, t in enumerate(plan["app_tasks"]) if t["task"] == "gone")
+    r = client.delete(f"/api/days/2026-04-12/tasks/app/{idx}", headers=AUTH)
+    assert r.status_code == 200
+    assert all(t["task"] != "gone" for t in r.json()["app_tasks"])
+
+
+def test_list_days(client):
+    client.get("/api/days/2026-04-12", headers=AUTH)
+    client.get("/api/days/2026-04-13", headers=AUTH)
+    r = client.get("/api/days", headers=AUTH)
+    assert r.status_code == 200
+    assert "2026-04-12" in r.json()["days"]
