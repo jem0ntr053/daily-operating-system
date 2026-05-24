@@ -263,3 +263,19 @@ def test_carry_forward_deduplicates():
     # Should not have duplicated
     count = sum(1 for t in today.app_tasks if t["task"] == "already here")
     assert count == 1
+
+
+# ---------------------------------------------------------------------------
+# Scalar day fields: mood, bpm, flow_minutes
+# ---------------------------------------------------------------------------
+
+def test_new_plan_has_scalar_defaults():
+    plan = DayPlan.new("2026-05-24")
+    assert plan.mood == "" and plan.bpm == "" and plan.flow_minutes == 0
+
+
+def test_from_dict_backfills_scalar_fields():
+    legacy = DayPlan.new("2026-05-24").to_dict()
+    legacy.pop("mood"); legacy.pop("bpm"); legacy.pop("flow_minutes")
+    plan = DayPlan.from_dict(legacy)
+    assert plan.mood == "" and plan.bpm == "" and plan.flow_minutes == 0

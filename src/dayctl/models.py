@@ -191,6 +191,9 @@ class DayPlan:
     app_tasks: List[Dict[str, bool | str]]
     music_tasks: List[Dict[str, bool | str]]
     notes: List[str]
+    mood: str = ""
+    bpm: str = ""
+    flow_minutes: int = 0
 
     @staticmethod
     def new(day_str: str, profile_key: str | None = None) -> DayPlan:
@@ -214,6 +217,9 @@ class DayPlan:
             app_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["app"]],
             music_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["music"]],
             notes=[],
+            mood="",
+            bpm="",
+            flow_minutes=0,
         )
 
     def switch_profile(self, new_key: str) -> None:
