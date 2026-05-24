@@ -114,7 +114,7 @@ def cmd_note(args: argparse.Namespace) -> None:
 
 def cmd_score(args: argparse.Namespace) -> None:
     plan = load_plan(resolve_date(args.date))
-    print(f"{plan.day} score: {score_plan(plan)} / 4")
+    print(f"{plan.day} score: {score_plan(plan)} / 6")
 
 
 # ---------------------------------------------------------------------------
@@ -297,9 +297,9 @@ def cmd_streak(args: argparse.Namespace) -> None:
     streak = compute_streak(day_scores, threshold=threshold)
 
     if streak == 0:
-        print(f"No active streak (threshold: {threshold}/4).")
+        print(f"No active streak (threshold: {threshold}/6).")
     else:
-        print(f"Current streak: {streak} day{'s' if streak != 1 else ''} (>= {threshold}/4)")
+        print(f"Current streak: {streak} day{'s' if streak != 1 else ''} (>= {threshold}/6)")
 
 
 # ---------------------------------------------------------------------------
@@ -425,13 +425,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     # check
     p_check = sub.add_parser("check", help="Mark a non-negotiable complete.")
-    p_check.add_argument("item", help="One of: fast, gym, app, music")
+    p_check.add_argument("item", help="One of: fast, gym, music, ship, post, read")
     p_check.add_argument("--date", help=DATE_HELP)
     p_check.set_defaults(func=cmd_check)
 
     # uncheck
     p_uncheck = sub.add_parser("uncheck", help="Mark a non-negotiable incomplete.")
-    p_uncheck.add_argument("item", help="One of: fast, gym, app, music")
+    p_uncheck.add_argument("item", help="One of: fast, gym, music, ship, post, read")
     p_uncheck.add_argument("--date", help=DATE_HELP)
     p_uncheck.set_defaults(func=cmd_uncheck)
 
@@ -484,7 +484,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # streak
     p_streak = sub.add_parser("streak", help="Show current streak (consecutive days >= threshold).")
-    p_streak.add_argument("--threshold", type=int, default=3, help="Minimum score to count (default: 3).")
+    p_streak.add_argument("--threshold", type=int, default=6, help="Minimum score to count (default: 6).")
     p_streak.set_defaults(func=cmd_streak)
 
     # history

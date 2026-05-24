@@ -165,7 +165,17 @@ SHOW_TOGGLE = {
     "saturday_show": "saturday_no_show",
 }
 
-NON_NEGOTIABLE_KEYS = ["fast", "gym", "app", "music"]
+HABIT_TEMPLATE = [
+    {"id": "fast",  "name": "FAST",   "meta": "11p → 4p"},
+    {"id": "gym",   "name": "GYM",    "meta": "Push · 6:30a"},
+    {"id": "music", "name": "STUDIO", "meta": "90 min block"},
+    {"id": "ship",  "name": "SHIP",   "meta": "1 commit min"},
+    {"id": "post",  "name": "POST",   "meta": "1 short"},
+    {"id": "read",  "name": "READ",   "meta": "20 pages"},
+]
+HABIT_KEYS = [h["id"] for h in HABIT_TEMPLATE]
+# Backwards-compatible alias for existing imports.
+NON_NEGOTIABLE_KEYS = HABIT_KEYS
 
 
 @dataclass

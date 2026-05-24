@@ -99,7 +99,7 @@ def render_checkbox(value: bool, theme: dict[str, str] | None = None) -> str:
     return _c(t["red"], "[ ]")
 
 
-def _score_bar(t: dict[str, str], score: int, max_score: int = 4) -> str:
+def _score_bar(t: dict[str, str], score: int, max_score: int = 6) -> str:
     filled = "●" * score
     empty = "·" * (max_score - score)
     if score == max_score:
@@ -176,7 +176,7 @@ def print_plan(plan: DayPlan, theme: dict[str, str] | None = None) -> None:
         mark = _render_check(t, plan.completed[key])
         nn_parts.append(f"{mark} {key.upper()}")
     bar = _score_bar(t, s)
-    nn_parts.append(f"{bar} {s}/4")
+    nn_parts.append(f"{bar} {s}/6")
     lines.append(_box_row(t, "   ".join(nn_parts)))
 
     # === Divider ===
@@ -266,7 +266,7 @@ def print_score_table(
         if score is None:
             right = _c(t["muted"], "  –")
         else:
-            right = f"{_score_bar(t, score)} {score}/4"
+            right = f"{_score_bar(t, score)} {score}/6"
             total += score
             count += 1
 
@@ -282,7 +282,7 @@ def print_score_table(
     # Average
     if count:
         avg = total / count
-        lines.append(_two_col(t, f"  {_c(t['accent'], 'Average')}", f"{avg:.1f}/4"))
+        lines.append(_two_col(t, f"  {_c(t['accent'], 'Average')}", f"{avg:.1f}/6"))
 
     lines.append(_box_bot(t))
 

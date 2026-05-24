@@ -4,7 +4,26 @@ from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES,
     profile_for_date, score_plan, wake_time, week_dates,
     compute_streak, incomplete_tasks, carry_forward,
+    HABIT_TEMPLATE, HABIT_KEYS,
 )
+
+
+def test_habit_template_has_six():
+    assert [h["id"] for h in HABIT_TEMPLATE] == ["fast", "gym", "music", "ship", "post", "read"]
+    assert HABIT_KEYS == ["fast", "gym", "music", "ship", "post", "read"]
+
+
+def test_new_plan_seeds_six_habits():
+    plan = DayPlan.new("2026-05-24")
+    assert set(plan.completed) == set(HABIT_KEYS)
+    assert all(v is False for v in plan.completed.values())
+
+
+def test_score_counts_completed_out_of_six():
+    plan = DayPlan.new("2026-05-24")
+    for k in ("fast", "gym", "music"):
+        plan.completed[k] = True
+    assert score_plan(plan) == 3
 
 
 def test_new_plan_defaults():
@@ -14,7 +33,7 @@ def test_new_plan_defaults():
     assert plan.fasting_window == "9:00 PM → 2:00 PM"
     assert plan.schedule[0] == "6:30 AM  Wake"
     assert all(v is False for v in plan.completed.values())
-    assert len(plan.completed) == 4
+    assert len(plan.completed) == 6
     assert set(plan.completed.keys()) == set(NON_NEGOTIABLE_KEYS)
 
 
@@ -34,7 +53,7 @@ def test_score_full():
     plan = DayPlan.new("2026-03-17")
     for k in NON_NEGOTIABLE_KEYS:
         plan.completed[k] = True
-    assert score_plan(plan) == 4
+    assert score_plan(plan) == 6
 
 
 def test_to_dict_roundtrip():

@@ -79,7 +79,7 @@ def test_note(day_env, monkeypatch):
 def test_score(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     out = _run(day_env, ["score", "--date", "2026-03-17"], monkeypatch)
-    assert "0 / 4" in out
+    assert "0 / 6" in out
 
 
 # ---------------------------------------------------------------------------
