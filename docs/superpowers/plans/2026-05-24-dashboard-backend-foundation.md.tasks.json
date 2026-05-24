@@ -4,34 +4,34 @@
     {
       "id": 1,
       "subject": "Task 1: 6-habit template + ÷6 scoring",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Replace the 4 non-negotiables with the 6-habit template; move scoring to ÷6 across model, display, CLI.\n\n**Files:** src/dayctl/models.py, src/dayctl/display.py, src/dayctl/cli.py, tests/test_models.py, tests/test_display.py, tests/test_cli.py\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"src/dayctl/display.py\", \"src/dayctl/cli.py\", \"tests/test_models.py\", \"tests/test_display.py\", \"tests/test_cli.py\"], \"verifyCommand\": \"pytest tests/ -q\", \"acceptanceCriteria\": [\"HABIT_TEMPLATE 6 + HABIT_KEYS\", \"score_plan 0-6\", \"terminal /6\", \"suite passes\"]}\n```"
     },
     {
       "id": 2,
       "subject": "Task 2: Add mood, bpm, flow_minutes day fields",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [1],
       "description": "**Goal:** Add three additive DayPlan scalar fields, backward-compatible with existing stored days.\n\n**Files:** src/dayctl/models.py, tests/test_models.py\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"tests/test_models.py\"], \"verifyCommand\": \"pytest tests/test_models.py -q\", \"acceptanceCriteria\": [\"3 fields w/ defaults\", \"new() inits them\", \"from_dict backfills\"]}\n```"
     },
     {
       "id": 3,
       "subject": "Task 3: Generalize tasks to 5-area dict + legacy migration",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [2],
       "description": "**Goal:** Replace app_tasks/music_tasks with tasks: Dict[str,List[dict]] over 5 areas; migrate legacy data; rewire CLI (music+code subset, app alias) and display.\n\n**Files:** src/dayctl/models.py, src/dayctl/cli.py, src/dayctl/display.py, tests/test_models.py, tests/test_cli.py, tests/test_display.py\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"src/dayctl/cli.py\", \"src/dayctl/display.py\", \"tests/test_models.py\", \"tests/test_cli.py\", \"tests/test_display.py\"], \"verifyCommand\": \"pytest tests/ -q\", \"acceptanceCriteria\": [\"AREAS 5 + task shape\", \"legacy migration\", \"new() seeds 5\", \"carry_forward carried=True\", \"CLI music+code+app alias\", \"display CODE+MUSIC\"]}\n```"
     },
     {
       "id": 4,
       "subject": "Task 4: Timestamped notes",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [3],
       "description": "**Goal:** Notes become {text,time} dicts; legacy strings normalize on load; CLI stamps time; display renders text.\n\n**Files:** src/dayctl/models.py, src/dayctl/cli.py, src/dayctl/display.py, tests/test_models.py, tests/test_cli.py\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"src/dayctl/cli.py\", \"src/dayctl/display.py\", \"tests/test_models.py\", \"tests/test_cli.py\"], \"verifyCommand\": \"pytest tests/ -q\", \"acceptanceCriteria\": [\"from_dict normalizes str notes\", \"cmd_note stamps time\", \"display renders text\"]}\n```"
     },
     {
       "id": 5,
       "subject": "Task 5: Persistent store (persistent.json)",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Backend-agnostic cross-day store for ideas/settings/stats with stat-update helper (spark append, cap 8).\n\n**Files:** src/dayctl/persistent.py (create), src/dayctl/storage.py, tests/test_persistent.py (create)\n\n```json:metadata\n{\"files\": [\"src/dayctl/persistent.py\", \"src/dayctl/storage.py\", \"tests/test_persistent.py\"], \"verifyCommand\": \"pytest tests/test_persistent.py -q\", \"acceptanceCriteria\": [\"defaults when absent\", \"round-trip\", \"update_stat spark cap 8 + updated_at\"]}\n```"
     }
   ],
