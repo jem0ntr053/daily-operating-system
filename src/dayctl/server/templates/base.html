@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daily OS — {{ day }}</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v={{ css_v | default(0) }}">
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body{% if persistent and persistent.settings.accent and persistent.settings.accent != 'cyan' %} data-accent="{{ persistent.settings.accent }}"{% endif %}>

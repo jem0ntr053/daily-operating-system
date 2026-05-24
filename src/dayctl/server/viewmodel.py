@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from pathlib import Path
 
 from dayctl.models import (
     HABIT_TEMPLATE, HABIT_KEYS, SCHEDULE_PROFILES,
@@ -9,6 +10,16 @@ from dayctl.models import (
 )
 from dayctl.persistent import load_persistent
 from dayctl.storage import exists, list_days, load_plan
+
+_STYLE_PATH = Path(__file__).parent / "static" / "style.css"
+
+
+def _css_version() -> int:
+    """Mtime of style.css, used to cache-bust the stylesheet link."""
+    try:
+        return int(_STYLE_PATH.stat().st_mtime)
+    except OSError:
+        return 0
 
 
 def _profile_label(plan) -> str:
@@ -69,4 +80,5 @@ def build_day_view(day: str) -> dict:
         "next_day": (date.fromisoformat(day) + timedelta(days=1)).isoformat(),
         "today": today,
         "date_long": date.fromisoformat(day).strftime("%A, %B %-d"),
+        "css_v": _css_version(),
     }
