@@ -299,7 +299,7 @@ def cmd_streak(args: argparse.Namespace) -> None:
         plan = load_plan(d)
         day_scores.append((d, score_plan(plan)))
 
-    threshold = getattr(args, "threshold", 3)
+    threshold = getattr(args, "threshold", len(NON_NEGOTIABLE_KEYS))
     streak = compute_streak(day_scores, threshold=threshold)
 
     if streak == 0:
