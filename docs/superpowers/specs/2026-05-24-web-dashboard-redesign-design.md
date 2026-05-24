@@ -1,7 +1,7 @@
 # Web Dashboard Redesign — Design Spec
 
 **Date:** 2026-05-24
-**Status:** Draft for review
+**Status:** Approved — ready for implementation plan
 **Topic:** Replace the minimal FastAPI web UI with the "Daily OS" dashboard design, server-rendered.
 
 ## Problem
@@ -59,7 +59,7 @@ Add:
 
 Change:
 - `notes: List[str]` → `List[dict]` of `{"text": str, "time": str}`. `from_dict` normalizes legacy `str` notes to `{"text": s, "time": ""}`.
-- `app_tasks` / `music_tasks` → generalized `tasks: Dict[str, List[dict]]` keyed by area, where a task is `{"text": str, "done": bool, "tag": str, "carried": bool}`. Areas: `music, youtube, marketing, social, code`. `from_dict` migrates legacy `music_tasks → tasks["music"]` and `app_tasks → tasks["code"]`, normalizing the old `{"task","done"}` shape to the new `{"text","done",...}`.
+- `app_tasks` / `music_tasks` → generalized `tasks: Dict[str, List[dict]]` keyed by area, where a task is `{"text": str, "done": bool, "tag": str, "carried": bool}`. Areas: `music, youtube, marketing, social, code`. `from_dict` migrates legacy `music_tasks → tasks["music"]` and `app_tasks → tasks["code"]`, normalizing the old `{"task","done"}` shape to the new `{"text","done",...}`. There is **no `app` area** — "app work" is software work and lives under `code` (Programming), which is where the design renders it.
 
 ### Habits (6) — `models.py`
 
@@ -81,7 +81,7 @@ read  (READ,   "20 pages")
 
 ### Persistent store (cross-day) — new
 
-The mockup's `persistent` (ideas, settings, stats, habitTemplate) needs a home outside per-day plans. Reuse the existing `config.json` mechanism (`load_config`/`save_config`) or add a sibling `persistent.json`; the SQLite backend gets an equivalent key/value row. Contents:
+The mockup's `persistent` (ideas, settings, stats) needs a home outside per-day plans. Add a sibling **`persistent.json`** at `~/.dayctl/persistent.json`, mirroring the React `store.persistent` schema; `config.json` stays for app config only (ideas/stats are user content, settings are preferences — neither is app config). The SQLite backend gets an equivalent single key/value entry. Contents:
 
 - `ideas: List[{from, text, created_at}]` — bucketed (Capture/Music/Content/Marketing/Code), newest-first, delete-able.
 - `settings: {accent: "cyan"|"mint"|"amber"|"pink", show_glance: bool}` — `fasting_window` stays per-day (profile-driven); drop the mockup's duplicate.
@@ -136,14 +136,14 @@ Date navigation is plain links/`hx-get` to `/day/{iso}` (prev/next/today, week-r
 ## CSS & Fonts
 
 - Replace the 11-line `static/style.css` with the design's stylesheet (extracted verbatim: `:root` palette, `.app` grid, sidebar, pulse, cards, areas, responsive breakpoints at 1280/980px).
-- Fonts: Bricolage Grotesque, Geist, JetBrains Mono. **Decision for review:** self-host woff2 under `static/fonts/` (works offline / on Fly with no third-party calls) vs. Google Fonts `<link>` (simpler, external dependency). Default: self-host.
+- Fonts: **self-hosted** latin-subset woff2 under `static/fonts/`, trimmed to the weights the CSS uses (Bricolage Grotesque 500/600/700, Geist 300–600, JetBrains Mono 400–600). ~100–200 KB total. No third-party (Google Fonts) request — works offline / on Fly. `@font-face` rules point at local paths.
 - Accent palette applied via `--cyan`/`--purple` CSS variables, switched from `settings.accent`.
 
 ## CLI & Display Impact (blast radius)
 
 Changing the core model ripples beyond the web layer. In scope:
 
-- `cli.py`: task subcommands assume `app_tasks`/`music_tasks`; update to the `tasks[area]` model (and decide the CLI's area vocabulary). Habit completion commands move from 4 keys to 6.
+- `cli.py`: task subcommands assume `app_tasks`/`music_tasks`; update to the `tasks[area]` model. **CLI manages a subset — `music` and `code`** (the web manages all 5 areas). The old `app` command becomes a **deprecated alias → `code`** so muscle memory and the 6am launchd auto-init keep working. Habit completion commands move from 4 keys to 6.
 - `display.py`: `print_plan` / score table render notes as `str` and score as `/4`; update for `{text,time}` notes and `/6` scoring.
 - `models.py`: `incomplete_tasks` / `carry_forward` iterate `("app_tasks","music_tasks")`; generalize to iterate `tasks` areas (carry-forward marks `carried=True`, matching the mockup's rollover).
 - Tests: `test_cli.py` and model/scoring/streak tests will need updates for 6 habits, `/6`, new task shape, and timestamped notes.
@@ -163,10 +163,10 @@ Changing the core model ripples beyond the web layer. In scope:
 5. **CLI + display alignment** — update CLI/display for the new model; tests green.
 6. **Verify** — run server, diff against mockup screenshot, run test suite, manual test plan → PR.
 
-## Risks / Decisions to confirm at review
+## Resolved decisions
 
-1. **Habit migration:** drop old `app` completion, no value remap (historical scores read lower). OK?
-2. **Task area mapping:** legacy `app_tasks → tasks["code"]`, `music_tasks → tasks["music"]`. Correct, or keep an explicit `app` area?
-3. **CLI vocabulary:** the CLI gains youtube/marketing/social/code task areas — acceptable, or keep CLI focused on a subset?
-4. **Fonts:** self-host vs. Google Fonts.
-5. **Persistent store location:** extend `config.json` vs. new `persistent.json`.
+1. **Habit migration:** drop old `app` completion, no value remap; pre-existing days read lower (max 4/6). Accepted.
+2. **Task-area mapping:** legacy `app_tasks → tasks["code"]`, `music_tasks → tasks["music"]`. No separate `app` area — "app work" lives under `code`.
+3. **CLI vocabulary:** CLI manages the `music` + `code` subset; old `app` command becomes a deprecated alias → `code`. Web manages all 5 areas.
+4. **Fonts:** self-hosted latin-subset woff2, trimmed to used weights.
+5. **Persistent store:** new `persistent.json` (mirrors `store.persistent`); `config.json` stays app-config only.
