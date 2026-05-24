@@ -1,0 +1,61 @@
+{
+  "planPath": "docs/superpowers/plans/2026-05-24-dashboard-web-ui.md",
+  "tasks": [
+    {
+      "id": 6,
+      "subject": "Task 1: Design system + shell + sidebar/header",
+      "status": "pending",
+      "description": "**Goal:** Install design CSS, rewrite base.html into .app shell, render dark two-column page with sidebar + header (real date/profile/date-nav). Visual checkpoint.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/static/style.css\",\"src/dayctl/server/templates/base.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/templates/_sidebar.html\",\"src/dayctl/server/templates/_header.html\",\"src/dayctl/server/viewmodel.py\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"design CSS installed\",\"shell renders dark 2-col\",\"header real data\",\"date-nav links\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 2: Pulse bar + habit toggles",
+      "status": "pending",
+      "blockedBy": [6],
+      "description": "**Goal:** Render daily pulse (progress bar + 6 habit cards) and wire habit toggling via HTMX.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_pulse.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"pulse renders 6 habits + bar\",\"toggle route flips+returns _pulse\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 3: Focus card (inline edit) + Schedule card",
+      "status": "pending",
+      "blockedBy": [7],
+      "description": "**Goal:** Left-col Focus card with inline-edit focus/energy/sleep/mood/bpm + Schedule card from real profile schedule.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_focus.html\",\"src/dayctl/server/templates/_schedule.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"field edits persist\",\"sleep→sleep_hours\",\"schedule rows render\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 4: Week Summary card + streak/nav",
+      "status": "pending",
+      "blockedBy": [8],
+      "description": "**Goal:** Week Summary card with per-day scores + click-to-navigate; streak dots reflect real data.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_week.html\",\"src/dayctl/server/templates/_sidebar.html\",\"src/dayctl/server/templates/day.html\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"7 week rows w/ scores\",\"rows link to days\",\"streak dots from week\"]}\n```"
+    },
+    {
+      "id": 10,
+      "subject": "Task 5: Notes card (add/delete, timestamped)",
+      "status": "pending",
+      "blockedBy": [9],
+      "description": "**Goal:** Notes card listing timestamped notes with add (Enter) and delete (click) via HTMX.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_notes.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"add note stamps time\",\"delete by idx\",\"returns _notes fragment\"]}\n```"
+    },
+    {
+      "id": 11,
+      "subject": "Task 6: Area cards + task lists (5 areas) + static widgets",
+      "status": "pending",
+      "blockedBy": [10],
+      "description": "**Goal:** Right-col area cards (music/youtube/marketing/social/code) w/ working task CRUD + static decorative widgets; rewrite _task_row to new shape.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_task_row.html\",\"src/dayctl/server/templates/_task_list.html\",\"src/dayctl/server/templates/_area_card.html\",\"src/dayctl/server/templates/_area_music.html\",\"src/dayctl/server/templates/_area_youtube.html\",\"src/dayctl/server/templates/_area_marketing.html\",\"src/dayctl/server/templates/_area_social.html\",\"src/dayctl/server/templates/_area_code.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/ -q\",\"acceptanceCriteria\":[\"_task_row new shape\",\"add/toggle/delete per area\",\"5 area cards w/ static widgets\",\"api tests green\"]}\n```"
+    },
+    {
+      "id": 12,
+      "subject": "Task 7: Idea Vault + Glance stats + accent settings",
+      "status": "pending",
+      "blockedBy": [11],
+      "description": "**Goal:** Wire persistent store — Idea Vault (add/delete), editable at-a-glance stats w/ sparkline, accent/show_glance settings.\n\n```json:metadata\n{\"files\":[\"src/dayctl/server/templates/_area_ideas.html\",\"src/dayctl/server/templates/_glance.html\",\"src/dayctl/server/templates/day.html\",\"src/dayctl/server/static/style.css\",\"src/dayctl/server/web.py\",\"tests/test_server_web.py\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/test_server_web.py -q\",\"acceptanceCriteria\":[\"idea add/delete persistent\",\"stat update appends spark\",\"accent/show_glance settings\"]}\n```"
+    },
+    {
+      "id": 13,
+      "subject": "Task 8: Self-hosted fonts",
+      "status": "pending",
+      "blockedBy": [12],
+      "description": "**Goal:** Vendor 3 font families as latin woff2, serve locally via @font-face.\n\n```json:metadata\n{\"files\":[\"scripts/fetch_fonts.py\",\"src/dayctl/server/static/style.css\",\"src/dayctl/server/static/fonts\"],\"verifyCommand\":\".venv/bin/python -m pytest tests/ -q\",\"acceptanceCriteria\":[\"woff2 vendored\",\"@font-face local\",\"fonts serve 200\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-05-24"
+}
