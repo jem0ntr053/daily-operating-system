@@ -12,6 +12,7 @@ from dayctl.storage_backends import select_backend
 DATA_DIR = Path.home() / ".dayctl"
 DAYS_DIR = DATA_DIR / "days"
 CONFIG_PATH = DATA_DIR / "config.json"
+PERSISTENT_PATH = DATA_DIR / "persistent.json"
 
 
 @lru_cache(maxsize=1)
