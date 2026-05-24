@@ -61,3 +61,11 @@ def test_day_page_renders_shell(client):
     assert 'class="app"' in body
     assert "Daily OS" in body
     assert "date-nav" in body
+
+
+def test_toggle_habit_flips_and_returns_pulse(client):
+    r = client.post("/web/day/2026-05-24/habit/fast/toggle", headers={"HX-Request": "true"})
+    assert r.status_code == 200
+    assert "pulse" in r.text
+    from dayctl.storage import load_plan
+    assert load_plan("2026-05-24").completed["fast"] is True

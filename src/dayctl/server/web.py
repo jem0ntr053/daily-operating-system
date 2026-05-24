@@ -12,6 +12,7 @@ from fastapi import Path as PathParam
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from dayctl.models import HABIT_KEYS
 from dayctl.server.auth import require_token
 from dayctl.server.viewmodel import build_day_view
 from dayctl.storage import load_plan, save_plan
@@ -86,3 +87,15 @@ def toggle_task(
             "idx": idx,
         },
     )
+
+
+@router.post("/web/day/{day}/habit/{habit_id}/toggle", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def toggle_habit(request: Request, habit_id: str, day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
+    if habit_id not in HABIT_KEYS:
+        raise HTTPException(404, "unknown habit")
+    plan = load_plan(day)
+    plan.completed[habit_id] = not plan.completed.get(habit_id, False)
+    save_plan(plan)
+    ctx = build_day_view(day)
+    ctx["request"] = request
+    return templates.TemplateResponse(request, "_pulse.html", ctx)
