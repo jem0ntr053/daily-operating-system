@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict, fields
+from dataclasses import dataclass, asdict, field, fields
 from datetime import date, timedelta
 from typing import Dict, List
 
@@ -147,7 +147,7 @@ def week_dates(reference: str) -> list[str]:
     return [(monday + timedelta(days=i)).isoformat() for i in range(7)]
 
 DEFAULT_TASKS = {
-    "app": [
+    "code": [
         "Define today's highest-value application task",
         "Complete one meaningful step",
     ],
@@ -156,6 +156,17 @@ DEFAULT_TASKS = {
         "Complete one meaningful step",
     ],
 }
+
+AREAS = ["music", "youtube", "marketing", "social", "code"]
+
+
+def _norm_task(t: dict) -> dict:
+    return {
+        "text": str(t.get("text", t.get("task", ""))),
+        "done": bool(t.get("done", False)),
+        "tag": str(t.get("tag", "")),
+        "carried": bool(t.get("carried", False)),
+    }
 
 # Profiles that have a show/no-show counterpart (bidirectional)
 SHOW_TOGGLE = {
@@ -188,12 +199,11 @@ class DayPlan:
     fasting_window: str
     schedule: List[str]
     completed: Dict[str, bool]
-    app_tasks: List[Dict[str, bool | str]]
-    music_tasks: List[Dict[str, bool | str]]
     notes: List[str]
     mood: str = ""
     bpm: str = ""
     flow_minutes: int = 0
+    tasks: Dict[str, List[Dict[str, object]]] = field(default_factory=dict)
 
     @staticmethod
     def new(day_str: str, profile_key: str | None = None) -> DayPlan:
@@ -214,12 +224,17 @@ class DayPlan:
             fasting_window=prof["fasting_window"],
             schedule=list(prof["schedule"]),
             completed={k: False for k in NON_NEGOTIABLE_KEYS},
-            app_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["app"]],
-            music_tasks=[{"task": t, "done": False} for t in DEFAULT_TASKS["music"]],
             notes=[],
             mood="",
             bpm="",
             flow_minutes=0,
+            tasks={
+                "music": [_norm_task({"text": t}) for t in DEFAULT_TASKS["music"]],
+                "youtube": [],
+                "marketing": [],
+                "social": [],
+                "code": [_norm_task({"text": t}) for t in DEFAULT_TASKS["code"]],
+            },
         )
 
     def switch_profile(self, new_key: str) -> None:
@@ -242,13 +257,13 @@ class DayPlan:
         if "profile" not in filtered and "day" in filtered:
             d = date.fromisoformat(filtered["day"])
             filtered["profile"] = _DOW_TO_PROFILE[d.weekday()]
-        # Normalize task dicts to ensure correct types
-        for key in ("app_tasks", "music_tasks"):
-            if key in filtered:
-                filtered[key] = [
-                    {"task": str(t.get("task", "")), "done": bool(t.get("done", False))}
-                    for t in filtered[key]
-                ]
+        # Migrate legacy flat tasks and normalize to new area dict
+        tasks = dict(filtered.get("tasks") or {})
+        if "code" not in tasks and data.get("app_tasks"):
+            tasks["code"] = [_norm_task(t) for t in data["app_tasks"]]
+        if "music" not in tasks and data.get("music_tasks"):
+            tasks["music"] = [_norm_task(t) for t in data["music_tasks"]]
+        filtered["tasks"] = {a: [_norm_task(t) for t in tasks.get(a, [])] for a in AREAS}
         try:
             return cls(**filtered)
         except TypeError as e:
@@ -291,27 +306,23 @@ def compute_streak(day_scores: list[tuple[str, int]], threshold: int = 3) -> int
 
 
 def incomplete_tasks(plan: DayPlan) -> dict[str, list[dict]]:
-    """Return incomplete tasks from a plan, keyed by category."""
+    """Return incomplete tasks from a plan, keyed by area."""
     result: dict[str, list[dict]] = {}
-    for attr in ("app_tasks", "music_tasks"):
-        pending = [t for t in getattr(plan, attr) if not t.get("done", False)]
+    for area in AREAS:
+        pending = [t for t in plan.tasks.get(area, []) if not t.get("done", False)]
         if pending:
-            result[attr] = [{"task": t["task"], "done": False} for t in pending]
+            result[area] = [dict(t) for t in pending]
     return result
 
 
 def carry_forward(plan: DayPlan, previous: DayPlan) -> list[str]:
     """Carry incomplete tasks from previous day into plan. Returns list of carried descriptions."""
     carried: list[str] = []
-    existing: dict[str, set[str]] = {}
-    for attr in ("app_tasks", "music_tasks"):
-        existing[attr] = {str(t["task"]) for t in getattr(plan, attr)}
-
-    pending = incomplete_tasks(previous)
-    for attr, tasks in pending.items():
-        current = getattr(plan, attr)
+    for area, tasks in incomplete_tasks(previous).items():
+        existing = {t["text"] for t in plan.tasks.get(area, [])}
         for t in tasks:
-            if str(t["task"]) not in existing[attr]:
-                current.append({"task": t["task"], "done": False})
-                carried.append(f"{attr.replace('_tasks', '')}: {t['task']}")
+            if t["text"] in existing:
+                continue
+            plan.tasks.setdefault(area, []).append({**_norm_task(t), "carried": True})
+            carried.append(t["text"])
     return carried

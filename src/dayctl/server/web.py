@@ -67,7 +67,9 @@ def toggle_task(
     if request.headers.get("HX-Request") != "true":
         raise HTTPException(403, "HTMX request required")
     plan = load_plan(day)
-    tasks = getattr(plan, f"{cat}_tasks")
+    _area_alias = {"app": "code"}
+    area = _area_alias.get(cat, cat)
+    tasks = plan.tasks.get(area, [])
     if idx < 0 or idx >= len(tasks):
         raise HTTPException(404, "task index out of range")
     tasks[idx]["done"] = not tasks[idx]["done"]

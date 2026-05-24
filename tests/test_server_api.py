@@ -47,7 +47,7 @@ def test_toggle_app_task(client):
     client.get("/api/days/2026-04-12", headers=AUTH)  # create
     r = client.post("/api/days/2026-04-12/tasks/app/0/toggle", headers=AUTH)
     assert r.status_code == 200
-    assert r.json()["app_tasks"][0]["done"] is True
+    assert r.json()["tasks"]["code"][0]["done"] is True
 
 
 def test_add_app_task(client):
@@ -57,16 +57,16 @@ def test_add_app_task(client):
         headers=AUTH,
     )
     assert r.status_code == 200
-    assert any(t["task"] == "new thing" for t in r.json()["app_tasks"])
+    assert any(t["text"] == "new thing" for t in r.json()["tasks"]["code"])
 
 
 def test_delete_app_task(client):
     client.post("/api/days/2026-04-12/tasks/app", json={"task": "gone"}, headers=AUTH)
     plan = client.get("/api/days/2026-04-12", headers=AUTH).json()
-    idx = next(i for i, t in enumerate(plan["app_tasks"]) if t["task"] == "gone")
+    idx = next(i for i, t in enumerate(plan["tasks"]["code"]) if t["text"] == "gone")
     r = client.delete(f"/api/days/2026-04-12/tasks/app/{idx}", headers=AUTH)
     assert r.status_code == 200
-    assert all(t["task"] != "gone" for t in r.json()["app_tasks"])
+    assert all(t["text"] != "gone" for t in r.json()["tasks"]["code"])
 
 
 def test_list_days(client):

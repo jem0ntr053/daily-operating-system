@@ -117,8 +117,8 @@ def test_task_add(day_env, monkeypatch):
     out = _run(day_env, ["task", "app", "add", "Ship login", "--date", "2026-03-17"], monkeypatch)
     assert "Added task #3" in out
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[-1]["task"] == "Ship login"
-    assert plan.app_tasks[-1]["done"] is False
+    assert plan.tasks["code"][-1]["text"] == "Ship login"
+    assert plan.tasks["code"][-1]["done"] is False
 
 
 def test_task_edit(day_env, monkeypatch):
@@ -126,26 +126,26 @@ def test_task_edit(day_env, monkeypatch):
     out = _run(day_env, ["task", "app", "1", "Ship auth flow", "--date", "2026-03-17"], monkeypatch)
     assert "Updated" in out
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["task"] == "Ship auth flow"
-    assert plan.app_tasks[0]["done"] is False
+    assert plan.tasks["code"][0]["text"] == "Ship auth flow"
+    assert plan.tasks["code"][0]["done"] is False
 
 
 def test_app_shortcut_edit(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["app", "1", "Ship auth flow", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["task"] == "Ship auth flow"
+    assert plan.tasks["code"][0]["text"] == "Ship auth flow"
 
 
 def test_task_done_and_undo(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["task", "app", "1", "done", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["done"] is True
+    assert plan.tasks["code"][0]["done"] is True
 
     _run(day_env, ["task", "app", "1", "undo", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["done"] is False
+    assert plan.tasks["code"][0]["done"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -157,29 +157,29 @@ def test_app_shortcut_add(day_env, monkeypatch):
     out = _run(day_env, ["app", "add", "Ship login", "--date", "2026-03-17"], monkeypatch)
     assert "Added task #3" in out
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[-1]["task"] == "Ship login"
+    assert plan.tasks["code"][-1]["text"] == "Ship login"
 
 
 def test_app_shortcut_done_and_undo(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["app", "1", "done", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["done"] is True
+    assert plan.tasks["code"][0]["done"] is True
 
     _run(day_env, ["app", "1", "undo", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.app_tasks[0]["done"] is False
+    assert plan.tasks["code"][0]["done"] is False
 
 
 def test_music_shortcut(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["music", "add", "Mix verse 2", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.music_tasks[-1]["task"] == "Mix verse 2"
+    assert plan.tasks["music"][-1]["text"] == "Mix verse 2"
 
     _run(day_env, ["music", "1", "done", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert plan.music_tasks[0]["done"] is True
+    assert plan.tasks["music"][0]["done"] is True
 
 
 # ---------------------------------------------------------------------------

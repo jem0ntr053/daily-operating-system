@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
-    score_plan, wake_time, compute_streak, week_dates,
+    score_plan, wake_time, compute_streak, week_dates, _norm_task,
 )
 from dayctl.storage import load_plan, save_plan, list_days, today_str, load_config, save_config, init_or_load_plan, exists, delete_plan
 from dayctl.display import print_plan, print_score_table, resolve_theme
@@ -140,19 +140,23 @@ def cmd_set(args: argparse.Namespace) -> None:
 # New: task
 # ---------------------------------------------------------------------------
 
-TASK_LIST_ATTR = {"app": "app_tasks", "music": "music_tasks"}
+TASK_AREA_ALIAS = {"app": "code"}  # legacy alias
+
+
+def _resolve_area(category: str) -> str:
+    return TASK_AREA_ALIAS.get(category, category)
 
 
 def _task_add(tasks: list, plan: DayPlan, category: str, value: str | None) -> None:
     if not value:
         raise SystemExit("Usage: dayctl task <category> add <description>")
-    tasks.append({"task": value, "done": False})
+    tasks.append(_norm_task({"text": value}))
     save_plan(plan)
     print(f"Added task #{len(tasks)} to {category}")
 
 
 def _task_edit(tasks: list, plan: DayPlan, category: str, idx: int, num: str, value: str) -> None:
-    tasks[idx]["task"] = value
+    tasks[idx]["text"] = value
     save_plan(plan)
     print(f"Updated: {category} task #{num}")
 
@@ -166,7 +170,8 @@ def _task_toggle(tasks: list, plan: DayPlan, category: str, idx: int, num: str, 
 
 def cmd_task(args: argparse.Namespace) -> None:
     plan = load_plan(resolve_date(args.date))
-    tasks: list = getattr(plan, TASK_LIST_ATTR[args.category])
+    area = _resolve_area(args.category)
+    tasks: list = plan.tasks.setdefault(area, [])
 
     action = args.action_or_index
     value = args.value
@@ -453,21 +458,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.add_argument("--date", help=DATE_HELP)
     p_set.set_defaults(func=cmd_set)
 
-    # task (legacy: dayctl task app 2 done)
-    p_task = sub.add_parser("task", help="Manage app/music tasks.")
-    p_task.add_argument("category", choices=["app", "music"], help="Task category")
+    # task
+    p_task = sub.add_parser("task", help="Manage music/code tasks.")
+    p_task.add_argument("category", choices=["music", "code", "app"], help="Task area (app = code alias)")
     p_task.add_argument("action_or_index", help="'add' or task number (1-based)")
     p_task.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
     p_task.add_argument("--date", help=DATE_HELP)
     p_task.set_defaults(func=cmd_task)
 
-    # app / music shortcuts (dayctl app 2 done, dayctl music add "Mix verse")
-    for category in ("app", "music"):
+    # music / code shortcuts (dayctl music add "Mix verse", dayctl code 2 done)
+    for category in ("music", "code"):
         p = sub.add_parser(category, help=f"Manage {category} tasks.")
         p.add_argument("action_or_index", help="'add' or task number (1-based)")
         p.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
         p.add_argument("--date", help=DATE_HELP)
         p.set_defaults(func=cmd_task, category=category)
+
+    # app: legacy alias for code
+    p_app = sub.add_parser("app", help="Manage code tasks (alias for 'code').")
+    p_app.add_argument("action_or_index", help="'add' or task number (1-based)")
+    p_app.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
+    p_app.add_argument("--date", help=DATE_HELP)
+    p_app.set_defaults(func=cmd_task, category="app")
 
     # tonight
     p_tonight = sub.add_parser("tonight", help="Toggle show/no-show profile (Fri & Sat).")

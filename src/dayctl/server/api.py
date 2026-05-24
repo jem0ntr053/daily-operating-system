@@ -6,21 +6,23 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel
 
-from dayctl.models import DayPlan
+from dayctl.models import DayPlan, AREAS, _norm_task
 from dayctl.server.auth import require_token
 from dayctl.storage import delete_plan, list_days, load_plan, save_plan
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
-Category = Literal["app", "music"]
+Category = Literal["app", "music", "code", "youtube", "marketing", "social"]
+
+_AREA_ALIAS = {"app": "code"}
+
+
+def _resolve_area(cat: str) -> str:
+    return _AREA_ALIAS.get(cat, cat)
 
 
 class TaskBody(BaseModel):
     task: str
-
-
-def _tasks_attr(cat: Category) -> str:
-    return f"{cat}_tasks"
 
 
 @router.get("/days")
@@ -55,7 +57,8 @@ def put_day(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), payload: dict 
 @router.post("/days/{day}/tasks/{cat}")
 def add_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., body: TaskBody = ...) -> dict:
     plan = load_plan(day)
-    getattr(plan, _tasks_attr(cat)).append({"task": body.task, "done": False})
+    area = _resolve_area(cat)
+    plan.tasks.setdefault(area, []).append(_norm_task({"text": body.task}))
     save_plan(plan)
     return plan.to_dict()
 
@@ -63,7 +66,8 @@ def add_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category
 @router.post("/days/{day}/tasks/{cat}/{idx}/toggle")
 def toggle_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., idx: int = ...) -> dict:
     plan = load_plan(day)
-    tasks = getattr(plan, _tasks_attr(cat))
+    area = _resolve_area(cat)
+    tasks = plan.tasks.get(area, [])
     if idx < 0 or idx >= len(tasks):
         raise HTTPException(404, "task index out of range")
     tasks[idx]["done"] = not tasks[idx]["done"]
@@ -82,7 +86,8 @@ def delete_day(
 @router.delete("/days/{day}/tasks/{cat}/{idx}")
 def delete_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ..., idx: int = ...) -> dict:
     plan = load_plan(day)
-    tasks = getattr(plan, _tasks_attr(cat))
+    area = _resolve_area(cat)
+    tasks = plan.tasks.get(area, [])
     if idx < 0 or idx >= len(tasks):
         raise HTTPException(404, "task index out of range")
     tasks.pop(idx)
