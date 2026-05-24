@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES, SHOW_TOGGLE,
@@ -107,7 +107,8 @@ def cmd_uncheck(args: argparse.Namespace) -> None:
 
 def cmd_note(args: argparse.Namespace) -> None:
     plan = load_plan(resolve_date(args.date))
-    plan.notes.append(args.text)
+    now = datetime.now()
+    plan.notes.append({"text": args.text, "time": f"{now.hour:02d}:{now.minute:02d}"})
     save_plan(plan)
     print("Note added.")
 

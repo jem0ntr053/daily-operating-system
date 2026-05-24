@@ -73,7 +73,7 @@ def test_note(day_env, monkeypatch):
     _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
     _run(day_env, ["note", "Felt great", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
-    assert "Felt great" in plan.notes
+    assert plan.notes[0]["text"] == "Felt great"
 
 
 def test_score(day_env, monkeypatch):

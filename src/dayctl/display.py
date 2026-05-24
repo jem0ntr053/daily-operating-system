@@ -216,7 +216,7 @@ def print_plan(plan: DayPlan, theme: dict[str, str] | None = None) -> None:
     lines.append(_box_row(t, _c(t["heading"], "NOTES")))
     if plan.notes:
         for n in plan.notes:
-            lines.append(_box_row(t, f"  • {n}"))
+            lines.append(_box_row(t, f"  • {n['text']}"))
     else:
         lines.append(_box_row(t, f"  {_c(t['muted'], '–')}"))
 

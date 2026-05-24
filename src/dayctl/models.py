@@ -264,6 +264,11 @@ class DayPlan:
         if "music" not in tasks and data.get("music_tasks"):
             tasks["music"] = [_norm_task(t) for t in data["music_tasks"]]
         filtered["tasks"] = {a: [_norm_task(t) for t in tasks.get(a, [])] for a in AREAS}
+        if "notes" in filtered:
+            filtered["notes"] = [
+                n if isinstance(n, dict) else {"text": str(n), "time": ""}
+                for n in filtered["notes"]
+            ]
         try:
             return cls(**filtered)
         except TypeError as e:

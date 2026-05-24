@@ -313,3 +313,14 @@ def test_from_dict_backfills_scalar_fields():
     legacy.pop("mood"); legacy.pop("bpm"); legacy.pop("flow_minutes")
     plan = DayPlan.from_dict(legacy)
     assert plan.mood == "" and plan.bpm == "" and plan.flow_minutes == 0
+
+
+# ---------------------------------------------------------------------------
+# Task 4: Timestamped notes
+# ---------------------------------------------------------------------------
+
+def test_from_dict_normalizes_string_notes():
+    legacy = DayPlan.new("2026-05-24").to_dict()
+    legacy["notes"] = ["belly felt weird", "note 2"]
+    plan = DayPlan.from_dict(legacy)
+    assert plan.notes == [{"text": "belly felt weird", "time": ""}, {"text": "note 2", "time": ""}]
