@@ -12,8 +12,8 @@ from fastapi import Path as PathParam
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from dayctl.models import score_plan
 from dayctl.server.auth import require_token
+from dayctl.server.viewmodel import build_day_view
 from dayctl.storage import load_plan, save_plan
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -41,16 +41,10 @@ def root() -> RedirectResponse:
 
 
 @router.get("/day/{day}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
-def view_day(
-    request: Request,
-    day: str = PathParam(..., pattern=_DAY_PATTERN),
-) -> HTMLResponse:
-    plan = load_plan(day)
-    return templates.TemplateResponse(
-        request,
-        "day.html",
-        {"plan": plan, "day": day, "score": score_plan(plan)},
-    )
+def view_day(request: Request, day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
+    ctx = build_day_view(day)
+    ctx["request"] = request
+    return templates.TemplateResponse(request, "day.html", ctx)
 
 
 @router.post(

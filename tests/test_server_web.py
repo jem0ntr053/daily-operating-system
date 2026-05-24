@@ -52,3 +52,12 @@ def test_toggle_rejects_non_htmx(client):
     client.get("/day/2026-04-12")
     r = client.post("/web/day/2026-04-12/tasks/app/0/toggle")
     assert r.status_code == 403
+
+
+def test_day_page_renders_shell(client):
+    r = client.get("/day/2026-05-24")
+    assert r.status_code == 200
+    body = r.text
+    assert 'class="app"' in body
+    assert "Daily OS" in body
+    assert "date-nav" in body
