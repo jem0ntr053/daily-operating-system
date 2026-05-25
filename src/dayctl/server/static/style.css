@@ -285,3 +285,6 @@
   body[data-accent="mint"]  { --cyan:#4ade80; --purple:#7dd3fc; }
   body[data-accent="amber"] { --cyan:#facc15; --purple:#fb923c; }
   body[data-accent="pink"]  { --cyan:#f472b6; --purple:#c4a7f7; }
+
+  .idea-bucket { background: var(--bg-2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-family: "JetBrains Mono"; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .idea-bucket.active { background: #4ade80; color: var(--bg); border-color: #4ade80; }

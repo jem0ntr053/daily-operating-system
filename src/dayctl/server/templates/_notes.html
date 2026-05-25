@@ -1,5 +1,5 @@
 <div class="card" id="notes">
-  <h3><span><span class="icon-dot" style="background:var(--yellow)"></span>Notes</span><span class="meta">{{ plan.notes|length }}</span></h3>
+  <h3><span><span class="icon-dot" style="background:var(--yellow)"></span>Notes</span><span class="meta">{{ plan.notes|length }} {{ 'TODAY' if is_today else 'ON ' + day }}</span></h3>
   {% if not plan.notes %}<div style="font-size:12px;color:var(--text-mute);padding:8px 4px 0">No notes yet.</div>{% endif %}
   {% for n in plan.notes %}
   <div class="note" hx-post="/web/day/{{ day }}/notes/{{ loop.index0 }}/delete" hx-target="#notes" hx-swap="outerHTML" title="Click to delete" style="cursor:pointer">

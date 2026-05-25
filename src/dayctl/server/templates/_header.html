@@ -1,9 +1,10 @@
 <div class="head">
   <div class="head-l">
     <h1>{{ date_long }}{% if not is_today %}<span class="day-tag {{ 'future' if day > today else 'past' }}">{{ 'future' if day > today else 'past' }}</span>{% else %}<span class="day-tag">today</span>{% endif %}</h1>
-    <div class="sub">{{ profile_label }}<span class="sep">·</span><span class="mono">Fasting {{ plan.fasting_window }}</span></div>
+    <div class="sub">{{ profile_label }}<span class="sep">·</span><span class="mono">Fasting {{ plan.fasting_window }}</span><span class="sep">·</span><span class="mono">Week {{ week_number }} / 52</span></div>
   </div>
   <div class="head-r">
+    <span class="saved"><span class="dot"></span>Synced</span>
     <div class="date-nav">
       <a href="/day/{{ prev_day }}" title="Previous day"><button>‹</button></a>
       <a href="/day/{{ today }}"><button class="today-btn{% if is_today %} viewing-today{% endif %}">TODAY</button></a>

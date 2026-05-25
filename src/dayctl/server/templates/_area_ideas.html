@@ -1,5 +1,11 @@
 <div class="area-card" id="ideas" style="--accent:#4ade80">
-  <div class="area-head"><div class="area-title"><span class="swatch"></span>Idea Vault</div><div class="area-tag">{{ persistent.ideas|length }}</div></div>
+  <div class="area-head"><div class="area-title"><span class="swatch"></span>Idea Vault</div><div class="area-tag">CROSS-DISCIPLINE · {{ persistent.ideas|length }}</div></div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px" id="idea-buckets">
+    {% for b in ["Capture","Music","Content","Marketing","Code"] %}
+    <button type="button" class="idea-bucket{% if loop.first %} active{% endif %}" data-bucket="{{ b }}"
+      onclick="document.querySelectorAll('#idea-buckets .idea-bucket').forEach(function(e){e.classList.remove('active')});this.classList.add('active');document.getElementById('idea-bucket-input').value=this.dataset.bucket;">{{ b }}</button>
+    {% endfor %}
+  </div>
   <div style="margin-top:8px;max-height:280px;overflow-y:auto">
     {% if not persistent.ideas %}<div style="font-size:12px;color:var(--text-mute);padding:4px">Idea vault is empty.</div>{% endif %}
     {% for idea in persistent.ideas %}
@@ -10,7 +16,7 @@
     {% endfor %}
   </div>
   <form class="task-add" hx-post="/web/ideas/add" hx-target="#ideas" hx-swap="outerHTML" hx-on::after-request="this.reset()">
-    <input type="hidden" name="bucket" value="Capture"><span>+</span>
+    <input type="hidden" name="bucket" id="idea-bucket-input" value="Capture"><span>+</span>
     <input name="text" placeholder="Capture an idea — Enter to save">
   </form>
 </div>

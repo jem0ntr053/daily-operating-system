@@ -1,5 +1,10 @@
 <div class="area-card" style="--accent:#f472b6">
   <div class="area-head"><div class="area-title"><span class="swatch"></span>Music Studio</div><div class="area-tag">ABLETON</div></div>
+  <div class="area-stats">
+    <div class="stat"><div class="v accent">Track 03</div><div class="l">current project</div></div>
+    <div class="stat"><div class="v">04:32<span class="small"> / 06:00</span></div><div class="l">arrangement</div></div>
+    <div class="stat"><div class="v">{{ plan.bpm or "—" }}{% if plan.bpm %}<span class="small"> bpm</span>{% endif %}</div><div class="l">tempo · F min</div></div>
+  </div>
   <div class="wave">{% for i in range(48) %}<span class="{% if i < 32 %}played{% endif %}" style="height:{{ 6 + (i * 7) % 22 }}px;background:#f472b6"></span>{% endfor %}</div>
   {% set area = "music" %}{% include "_task_list.html" %}
 </div>

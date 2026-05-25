@@ -129,3 +129,13 @@ def test_stat_update_appends_spark(client, tmp_path, monkeypatch):
     from dayctl.persistent import load_persistent
     st = load_persistent()["stats"]["ytSubs"]
     assert st["v"] == "12.5K" and st["spark"][-1] == 12.5
+
+
+def test_polish_elements_present(client):
+    body = client.get("/day/2026-05-25").text
+    assert "Week " in body and "/ 52" in body          # header week
+    assert "logged" in body                              # streak logged count
+    assert "current project" in body                     # music area-stats
+    assert "open campaigns" in body                      # marketing area-stats
+    assert "CROSS-DISCIPLINE" in body                    # idea vault tag
+    assert "idea-bucket" in body                         # bucket pills

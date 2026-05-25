@@ -42,7 +42,7 @@ def _week(day: str) -> list[dict]:
     today = date.today().isoformat()
     out = []
     for iso in week_dates(day):
-        wscore = score_plan(load_plan(iso)) if exists(iso) else None
+        wscore = score_plan(load_plan(iso)) if exists(iso) else 0
         out.append({
             "iso": iso,
             "label": date.fromisoformat(iso).strftime("%a %m/%d"),
@@ -81,4 +81,6 @@ def build_day_view(day: str) -> dict:
         "today": today,
         "date_long": date.fromisoformat(day).strftime("%A, %B %-d"),
         "css_v": _css_version(),
+        "week_number": date.fromisoformat(day).isocalendar()[1],
+        "logged": len(list_days()),
     }

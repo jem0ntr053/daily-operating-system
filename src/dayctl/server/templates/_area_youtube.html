@@ -1,5 +1,10 @@
 <div class="area-card" style="--accent:#ef4444">
   <div class="area-head"><div class="area-title"><span class="swatch"></span>YouTube</div><div class="area-tag">LONG-FORM · SHORTS</div></div>
+  <div class="area-stats">
+    <div class="stat"><div class="v accent">12.4K</div><div class="l">subscribers</div></div>
+    <div class="stat"><div class="v">{{ plan.tasks.get('youtube', []) | rejectattr('done') | list | length }}</div><div class="l">open tasks</div></div>
+    <div class="stat"><div class="v">Mon</div><div class="l">next upload</div></div>
+  </div>
   <div style="display:flex;flex-direction:column;gap:6px">
     <div class="vid">
       <div class="vid-thumb status-live">PUB</div>

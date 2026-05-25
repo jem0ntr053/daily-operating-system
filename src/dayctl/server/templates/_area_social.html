@@ -1,5 +1,10 @@
 <div class="area-card" style="--accent:#c4a7f7">
   <div class="area-head"><div class="area-title"><span class="swatch"></span>Social Media</div><div class="area-tag">IG · TIKTOK · YT SHORTS</div></div>
+  <div class="area-stats">
+    <div class="stat"><div class="v accent">{{ plan.tasks.get('social', []) | rejectattr('done') | list | length }}</div><div class="l">posts queued</div></div>
+    <div class="stat"><div class="v">+412</div><div class="l">followers · 7d</div></div>
+    <div class="stat"><div class="v">3.1%</div><div class="l">engagement</div></div>
+  </div>
   <div style="display:flex;flex-direction:column;gap:6px">
     <div class="post-row">
       <div class="post-platform ig">IG</div>

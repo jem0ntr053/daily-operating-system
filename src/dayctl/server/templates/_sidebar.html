@@ -90,7 +90,7 @@
       </div>
       <div class="streak-dots">{% for w in week %}<span class="{% if w.score == w.total %}on{% elif w.score %}half{% endif %}"></span>{% endfor %}</div>
       <div style="margin-top: 10px; font-family: 'JetBrains Mono'; font-size: 10px; color: var(--text-mute); letter-spacing: 0.08em; text-transform: uppercase;">
-        Today · {{ score }}/{{ total }}
+        Today · {{ score }}/{{ total }} · {{ logged }} logged
       </div>
     </div>
   </div>
