@@ -93,5 +93,21 @@
         Today · {{ score }}/{{ total }} · {{ logged }} logged
       </div>
     </div>
+
+    <form method="post" action="/web/settings" style="margin-top: 14px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;">
+      <div class="nav-label" style="padding: 0 0 8px;"><span>Settings</span></div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+        {% for a, c in [("cyan","#7dd3fc"),("mint","#4ade80"),("amber","#facc15"),("pink","#f472b6")] %}
+        <label title="{{ a }}" style="cursor: pointer; line-height: 0;">
+          <input type="radio" name="accent" value="{{ a }}" {% if persistent.settings.accent == a %}checked{% endif %} style="display: none;">
+          <span style="display: block; width: 16px; height: 16px; border-radius: 50%; background: {{ c }}; border: 2px solid {% if persistent.settings.accent == a %}var(--text){% else %}transparent{% endif %};"></span>
+        </label>
+        {% endfor %}
+      </div>
+      <label style="display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-dim); margin-bottom: 10px; cursor: pointer;">
+        <input type="checkbox" name="show_glance" {% if persistent.settings.show_glance %}checked{% endif %}> Show metrics
+      </label>
+      <button type="submit" class="btn-primary" style="width: 100%; padding: 5px; font-size: 11px;">Save</button>
+    </form>
   </div>
 </aside>

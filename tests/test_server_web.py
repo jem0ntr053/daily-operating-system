@@ -203,3 +203,14 @@ def test_selfhosted_fonts_served(client):
     assert "@font-face" in client.get("/static/style.css").text
     r = client.get("/static/fonts/Geist-400.woff2")
     assert r.status_code == 200
+
+
+def test_settings_form_changes_accent(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
+    body = client.get("/day/2026-05-25").text
+    assert 'action="/web/settings"' in body          # settings control is reachable
+    r = client.post("/web/settings", data={"accent": "mint", "show_glance": "on"}, follow_redirects=False)
+    assert r.status_code in (302, 303)
+    from dayctl.persistent import load_persistent
+    s = load_persistent()["settings"]
+    assert s["accent"] == "mint" and s["show_glance"] is True
