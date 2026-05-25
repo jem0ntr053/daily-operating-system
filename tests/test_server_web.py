@@ -196,3 +196,10 @@ def test_idea_edit_changes_topic(client, tmp_path, monkeypatch):
     client.post("/web/ideas/0/save", data={"text": "beat idea", "bucket": "Content"}, headers={"HX-Request": "true"})
     from dayctl.persistent import load_persistent
     assert load_persistent()["ideas"][0]["from"] == "Content"
+
+
+def test_selfhosted_fonts_served(client):
+    # @font-face declared and the woff2 assets are served locally.
+    assert "@font-face" in client.get("/static/style.css").text
+    r = client.get("/static/fonts/Geist-400.woff2")
+    assert r.status_code == 200
