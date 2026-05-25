@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from dayctl.models import AREAS, HABIT_KEYS, _norm_task
+from dayctl.persistent import load_persistent, save_persistent, update_stat
 from dayctl.server.auth import require_token
 from dayctl.server.viewmodel import build_day_view
 from dayctl.storage import load_plan, save_plan
@@ -166,3 +167,42 @@ def delete_note(request: Request, idx: int, day: str = PathParam(..., pattern=_D
         save_plan(plan)
     ctx = build_day_view(day); ctx["request"] = request
     return templates.TemplateResponse(request, "_notes.html", ctx)
+
+
+def _render_ideas(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "_area_ideas.html", {"request": request, "persistent": load_persistent()})
+
+
+@router.post("/web/ideas/add", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def add_idea(request: Request, text: str = Form(""), bucket: str = Form("Capture")) -> HTMLResponse:
+    if text.strip():
+        p = load_persistent()
+        p["ideas"].insert(0, {"from": bucket, "text": text.strip()})
+        save_persistent(p)
+    return _render_ideas(request)
+
+
+@router.post("/web/ideas/{idx}/delete", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def delete_idea(request: Request, idx: int) -> HTMLResponse:
+    p = load_persistent()
+    if 0 <= idx < len(p["ideas"]):
+        p["ideas"].pop(idx)
+        save_persistent(p)
+    return _render_ideas(request)
+
+
+@router.post("/web/stats/{key}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def edit_stat(request: Request, key: str, v: str = Form(""), d: str = Form(""), trend: str = Form("flat")) -> HTMLResponse:
+    p = load_persistent()
+    update_stat(p, key, {"v": v, "d": d, "trend": trend})
+    save_persistent(p)
+    return templates.TemplateResponse(request, "_glance.html", {"request": request, "persistent": load_persistent()})
+
+
+@router.post("/web/settings", dependencies=[Depends(require_token)])
+def update_settings(accent: str = Form("cyan"), show_glance: str = Form("")) -> RedirectResponse:
+    p = load_persistent()
+    p["settings"]["accent"] = accent
+    p["settings"]["show_glance"] = show_glance == "on"
+    save_persistent(p)
+    return RedirectResponse(url=f"/day/{date.today().isoformat()}", status_code=303)

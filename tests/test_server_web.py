@@ -111,3 +111,21 @@ def test_add_and_delete_note(client):
     r2 = client.post("/web/day/2026-05-24/notes/0/delete", headers={"HX-Request": "true"})
     assert "felt good" not in r2.text
     assert load_plan("2026-05-24").notes == []
+
+
+def test_idea_add_delete(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
+    r = client.post("/web/ideas/add", data={"text": "sample fridge hum", "bucket": "Music"}, headers={"HX-Request": "true"})
+    assert "sample fridge hum" in r.text
+    from dayctl.persistent import load_persistent
+    assert load_persistent()["ideas"][0]["text"] == "sample fridge hum"
+    client.post("/web/ideas/0/delete", headers={"HX-Request": "true"})
+    assert load_persistent()["ideas"] == []
+
+
+def test_stat_update_appends_spark(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
+    client.post("/web/stats/ytSubs", data={"v": "12.5K", "d": "+10", "trend": "up"}, headers={"HX-Request": "true"})
+    from dayctl.persistent import load_persistent
+    st = load_persistent()["stats"]["ytSubs"]
+    assert st["v"] == "12.5K" and st["spark"][-1] == 12.5

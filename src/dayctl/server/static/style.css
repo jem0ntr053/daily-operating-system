@@ -281,3 +281,7 @@
   .danger-btn:hover { background: rgba(239,68,68,0.16) !important; }
 
   .carried-pill { font-family: "JetBrains Mono"; font-size: 9px; padding: 2px 5px; border-radius: 3px; background: rgba(250,204,21,0.12); color: var(--yellow); margin-left: 6px; letter-spacing: 0.06em; }
+
+  body[data-accent="mint"]  { --cyan:#4ade80; --purple:#7dd3fc; }
+  body[data-accent="amber"] { --cyan:#facc15; --purple:#fb923c; }
+  body[data-accent="pink"]  { --cyan:#f472b6; --purple:#c4a7f7; }

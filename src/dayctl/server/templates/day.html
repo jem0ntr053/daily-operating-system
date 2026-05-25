@@ -2,6 +2,7 @@
 {% block main %}
   {% include "_header.html" %}
   {% include "_pulse.html" %}
+  {% if persistent.settings.show_glance %}{% include "_glance.html" %}{% endif %}
   <div class="grid">
     <div class="col">
       {% include "_focus.html" %}
@@ -16,6 +17,7 @@
         {% include "_area_marketing.html" %}
         {% include "_area_social.html" %}
         {% include "_area_code.html" %}
+        {% include "_area_ideas.html" %}
       </div>
     </div>
   </div>

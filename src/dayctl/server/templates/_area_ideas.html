@@ -1,0 +1,16 @@
+<div class="area-card" id="ideas" style="--accent:#4ade80">
+  <div class="area-head"><div class="area-title"><span class="swatch"></span>Idea Vault</div><div class="area-tag">{{ persistent.ideas|length }}</div></div>
+  <div style="margin-top:8px;max-height:280px;overflow-y:auto">
+    {% if not persistent.ideas %}<div style="font-size:12px;color:var(--text-mute);padding:4px">Idea vault is empty.</div>{% endif %}
+    {% for idea in persistent.ideas %}
+    <div class="idea" style="border-left-color:#4ade80;position:relative">
+      <span class="from">{{ idea['from'] }}</span>{{ idea.text }}
+      <span hx-post="/web/ideas/{{ loop.index0 }}/delete" hx-target="#ideas" hx-swap="outerHTML" style="position:absolute;right:8px;top:8px;cursor:pointer;color:var(--text-mute)">×</span>
+    </div>
+    {% endfor %}
+  </div>
+  <form class="task-add" hx-post="/web/ideas/add" hx-target="#ideas" hx-swap="outerHTML" hx-on::after-request="this.reset()">
+    <input type="hidden" name="bucket" value="Capture"><span>+</span>
+    <input name="text" placeholder="Capture an idea — Enter to save">
+  </form>
+</div>

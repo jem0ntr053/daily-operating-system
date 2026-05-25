@@ -1,0 +1,18 @@
+<div class="glance-grid" id="glance">
+  {% for key in ["scPlays","scFollowers","ytSubs","campaigns"] %}
+  {% set stat = persistent.stats[key] %}
+  <form class="glance" hx-post="/web/stats/{{ key }}" hx-target="#glance" hx-swap="outerHTML">
+    <div class="glance-l">{{ stat.label }}</div>
+    <input name="v" value="{{ stat.v }}" placeholder="—" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono';font-size:18px;font-weight:600;width:100%;margin-top:6px;padding:4px 6px">
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <input name="d" value="{{ stat.d }}" placeholder="+ wk" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono';font-size:11px;padding:3px 6px">
+      <select name="trend" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px">
+        <option value="up" {% if stat.trend=='up' %}selected{% endif %}>▲</option>
+        <option value="flat" {% if stat.trend=='flat' %}selected{% endif %}>—</option>
+        <option value="down" {% if stat.trend=='down' %}selected{% endif %}>▼</option>
+      </select>
+      <button class="btn-primary" type="submit" style="padding:3px 8px">Save</button>
+    </div>
+  </form>
+  {% endfor %}
+</div>
