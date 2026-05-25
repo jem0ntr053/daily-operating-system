@@ -170,8 +170,11 @@ def delete_note(request: Request, idx: int, day: str = PathParam(..., pattern=_D
     return templates.TemplateResponse(request, "_notes.html", ctx)
 
 
-def _render_ideas(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "_area_ideas.html", {"request": request, "persistent": load_persistent()})
+def _render_ideas(request: Request, editing_idx: int | None = None) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request, "_area_ideas.html",
+        {"request": request, "persistent": load_persistent(), "editing_idx": editing_idx},
+    )
 
 
 @router.post("/web/ideas/add", response_class=HTMLResponse, dependencies=[Depends(require_token)])
@@ -188,6 +191,25 @@ def delete_idea(request: Request, idx: int) -> HTMLResponse:
     p = load_persistent()
     if 0 <= idx < len(p["ideas"]):
         p["ideas"].pop(idx)
+        save_persistent(p)
+    return _render_ideas(request)
+
+
+@router.get("/web/ideas", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def ideas_display(request: Request) -> HTMLResponse:
+    return _render_ideas(request)
+
+
+@router.get("/web/ideas/{idx}/edit", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def ideas_edit(request: Request, idx: int) -> HTMLResponse:
+    return _render_ideas(request, editing_idx=idx)
+
+
+@router.post("/web/ideas/{idx}/save", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def ideas_save(request: Request, idx: int, text: str = Form("")) -> HTMLResponse:
+    p = load_persistent()
+    if 0 <= idx < len(p["ideas"]) and text.strip():
+        p["ideas"][idx]["text"] = text.strip()
         save_persistent(p)
     return _render_ideas(request)
 
