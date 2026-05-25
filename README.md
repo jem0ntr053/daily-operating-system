@@ -142,6 +142,43 @@ python export_calendars.py    # outputs to calendars/
 
 Plans are stored as JSON in `~/.dayctl/days/`. Both `day` and `dayctl` work as commands.
 
+## Run the web dashboard locally (macOS — free)
+
+Run the FastAPI dashboard as a background service that auto-starts on login and restarts if it crashes. It binds `127.0.0.1:8000` (this Mac only — not exposed to your network), at no cost.
+
+```bash
+pip install -e '.[server]'
+
+# 1. Install the LaunchAgent
+cp scripts/com.dayos.web.plist ~/Library/LaunchAgents/
+#    Edit ~/Library/LaunchAgents/com.dayos.web.plist:
+#      - replace <DAYCTL_TOKEN> with a token you generate:  openssl rand -hex 24
+#      - adjust the uvicorn path / WorkingDirectory if your checkout differs
+
+# 2. Load it (starts now, on every login, and restarts on crash)
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.dayos.web.plist
+
+# 3. First-time login (sets an auth cookie; afterwards just open http://127.0.0.1:8000)
+open "http://127.0.0.1:8000/login?token=<DAYCTL_TOKEN>"
+```
+
+Manage the service:
+
+```bash
+launchctl bootout   gui/$(id -u) ~/Library/LaunchAgents/com.dayos.web.plist   # stop
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.dayos.web.plist   # start
+```
+
+Logs: `/tmp/dayos-web.log`. The dashboard shares data with the `day`/`dayctl` CLI (`~/.dayctl/`).
+
+For a one-off foreground run (development):
+
+```bash
+DAYCTL_TOKEN=dev .venv/bin/uvicorn dayctl.server.app:create_app --factory --port 8000
+```
+
+> **Phone access:** the local service is `localhost`-only by design. Reaching it from a phone for free (via Tailscale) is tracked in [#11](../../issues/11). The paid always-on option is Fly.io, below.
+
 ## Remote deployment (Fly.io)
 
 The FastAPI server can be deployed to Fly.io for phone access and push reminders via ntfy.sh.
