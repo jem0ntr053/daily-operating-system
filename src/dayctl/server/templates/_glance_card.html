@@ -1,0 +1,28 @@
+<div class="glance" id="glance-{{ key }}">
+{% if editing %}
+  <div class="glance-l">{{ stat.label }}</div>
+  <form hx-post="/web/stats/{{ key }}" hx-target="#glance-{{ key }}" hx-swap="outerHTML">
+    <input name="v" value="{{ stat.v }}" autofocus style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono';font-size:18px;font-weight:600;margin-top:6px;padding:4px 6px">
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <input name="d" value="{{ stat.d }}" placeholder="+ wk" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono';font-size:11px;padding:3px 6px">
+      <select name="trend" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px">
+        <option value="up" {% if stat.trend=='up' %}selected{% endif %}>▲</option>
+        <option value="flat" {% if stat.trend=='flat' %}selected{% endif %}>—</option>
+        <option value="down" {% if stat.trend=='down' %}selected{% endif %}>▼</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-primary" type="submit" style="flex:1;padding:4px">Save</button>
+      <button type="button" hx-get="/web/stats/{{ key }}" hx-target="#glance-{{ key }}" hx-swap="outerHTML" style="flex:1;padding:4px;background:var(--bg-2);color:var(--text-dim);border:1px solid var(--border);border-radius:6px;cursor:pointer">Cancel</button>
+    </div>
+  </form>
+{% else %}
+  <div hx-get="/web/stats/{{ key }}/edit" hx-target="#glance-{{ key }}" hx-swap="outerHTML" style="cursor:pointer" title="Click to update">
+    {% if points %}<svg class="spark" viewBox="0 0 64 40" preserveAspectRatio="none"><polyline points="{{ points }}" fill="none" stroke="var(--cyan)" stroke-width="1.5"/></svg>{% endif %}
+    <div class="glance-l">{{ stat.label }}</div>
+    <div class="glance-v">{{ stat.v or "—" }}</div>
+    <div class="glance-d {{ stat.trend or 'flat' }}">{% if stat.trend=='up' %}▲ {% elif stat.trend=='down' %}▼ {% else %}— {% endif %}{{ stat.d }}</div>
+    <div style="font-family:'JetBrains Mono';font-size:9px;color:var(--text-mute);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase">{% if stat.updated_at %}updated{% else %}tap to update{% endif %}</div>
+  </div>
+{% endif %}
+</div>

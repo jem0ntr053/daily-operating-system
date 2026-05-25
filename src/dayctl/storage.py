@@ -61,10 +61,15 @@ def init_or_load_plan(day_str: str, profile_key: str | None = None) -> tuple[Day
             b.save_plan(plan)
     else:
         plan = DayPlan.new(day_str, profile_key=profile_key)
+        b.save_plan(plan)
+    # Carry incomplete tasks forward once per day, idempotently. Runs even when the
+    # day was pre-created (by navigation/auto-create) before carry-forward had a
+    # chance to run; the rolled_over flag guarantees it never duplicates.
+    if not getattr(plan, "rolled_over", False):
         yesterday = (date.fromisoformat(day_str) - timedelta(days=1)).isoformat()
         if b.exists(yesterday):
-            prev = b.load_plan(yesterday)
-            carried = carry_forward(plan, prev)
+            carried = carry_forward(plan, b.load_plan(yesterday))
+        plan.rolled_over = True
         b.save_plan(plan)
     return plan, carried
 

@@ -204,6 +204,7 @@ class DayPlan:
     bpm: str = ""
     flow_minutes: int = 0
     tasks: Dict[str, List[Dict[str, object]]] = field(default_factory=dict)
+    rolled_over: bool = False  # True once incomplete tasks were carried into this day
 
     @staticmethod
     def new(day_str: str, profile_key: str | None = None) -> DayPlan:

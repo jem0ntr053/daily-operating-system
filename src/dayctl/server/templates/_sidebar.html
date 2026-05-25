@@ -1,0 +1,113 @@
+<aside class="side">
+  <div class="brand">
+    <div class="brand-mark">J</div>
+    <div>
+      <div class="brand-name">Daily OS</div>
+      <div class="brand-sub">JM · v0.2</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label"><span>Today</span></div>
+    <div class="nav-item active">
+      <span class="dot"></span>
+      <span>Dashboard</span>
+      <span class="badge">•</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot"></span>
+      <span>Schedule</span>
+      <span class="badge">5</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot"></span>
+      <span>Inbox</span>
+      <span class="badge">12</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">
+      <span>Craft</span>
+      <span class="count">FLOW</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot" style="background: #f472b6"></span>
+      <span>Music Studio</span>
+      <span class="badge">3</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot" style="background: #ef4444"></span>
+      <span>YouTube</span>
+      <span class="badge">4</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot" style="background: #7dd3fc"></span>
+      <span>Programming</span>
+      <span class="badge">2</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label"><span>Growth</span></div>
+    <div class="nav-item">
+      <span class="dot" style="background: #facc15"></span>
+      <span>Marketing</span>
+      <span class="badge">2</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot" style="background: #c4a7f7"></span>
+      <span>Social Media</span>
+      <span class="badge">6</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot" style="background: #4ade80"></span>
+      <span>Analytics</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label"><span>System</span></div>
+    <div class="nav-item">
+      <span class="dot"></span>
+      <span>Library</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot"></span>
+      <span>Weekly Review</span>
+    </div>
+    <div class="nav-item">
+      <span class="dot"></span>
+      <span>Settings</span>
+    </div>
+  </div>
+
+  <div class="side-foot">
+    <div class="streak">
+      <div class="streak-row">
+        <div class="streak-num">{{ streak }}</div>
+        <div class="streak-label">day streak</div>
+      </div>
+      <div class="streak-dots">{% for w in week %}<span class="{% if w.score == w.total %}on{% elif w.score %}half{% endif %}"></span>{% endfor %}</div>
+      <div style="margin-top: 10px; font-family: 'JetBrains Mono'; font-size: 10px; color: var(--text-mute); letter-spacing: 0.08em; text-transform: uppercase;">
+        Today · {{ score }}/{{ total }} · {{ logged }} logged
+      </div>
+    </div>
+
+    <form method="post" action="/web/settings" style="margin-top: 14px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;">
+      <div class="nav-label" style="padding: 0 0 8px;"><span>Settings</span></div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+        {% for a, c in [("cyan","#7dd3fc"),("mint","#4ade80"),("amber","#facc15"),("pink","#f472b6")] %}
+        <label title="{{ a }}" style="cursor: pointer; line-height: 0;">
+          <input type="radio" name="accent" value="{{ a }}" {% if persistent.settings.accent == a %}checked{% endif %} style="display: none;">
+          <span style="display: block; width: 16px; height: 16px; border-radius: 50%; background: {{ c }}; border: 2px solid {% if persistent.settings.accent == a %}var(--text){% else %}transparent{% endif %};"></span>
+        </label>
+        {% endfor %}
+      </div>
+      <label style="display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-dim); margin-bottom: 10px; cursor: pointer;">
+        <input type="checkbox" name="show_glance" {% if persistent.settings.show_glance %}checked{% endif %}> Show metrics
+      </label>
+      <button type="submit" class="btn-primary" style="width: 100%; padding: 5px; font-size: 11px;">Save</button>
+    </form>
+  </div>
+</aside>

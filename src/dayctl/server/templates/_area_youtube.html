@@ -1,0 +1,35 @@
+<div class="area-card" style="--accent:#ef4444">
+  <div class="area-head"><div class="area-title"><span class="swatch"></span>YouTube</div><div class="area-tag">LONG-FORM · SHORTS</div></div>
+  <div class="area-stats">
+    <div class="stat"><div class="v accent">12.4K</div><div class="l">subscribers</div></div>
+    <div class="stat"><div class="v">{{ plan.tasks.get('youtube', []) | rejectattr('done') | list | length }}</div><div class="l">open tasks</div></div>
+    <div class="stat"><div class="v">Mon</div><div class="l">next upload</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="vid">
+      <div class="vid-thumb status-live">PUB</div>
+      <div class="vid-meta">
+        <div class="vid-title">How I made my last beat go viral</div>
+        <div class="vid-sub">1.2K views · 18h ago · 6.4% CTR</div>
+      </div>
+      <span class="vid-status pub">LIVE</span>
+    </div>
+    <div class="vid">
+      <div class="vid-thumb">EDIT</div>
+      <div class="vid-meta">
+        <div class="vid-title">FL Studio: my 808 chain from scratch</div>
+        <div class="vid-sub">Editing · need B-roll of MIDI controller</div>
+      </div>
+      <span class="vid-status edit">EDIT</span>
+    </div>
+    <div class="vid">
+      <div class="vid-thumb">SHOOT</div>
+      <div class="vid-meta">
+        <div class="vid-title">I built a beat-marketplace app in 7 days</div>
+        <div class="vid-sub">Shoot today 2pm · thumbnail not started</div>
+      </div>
+      <span class="vid-status shoot">SHOOT</span>
+    </div>
+  </div>
+  {% set area = "youtube" %}{% include "_task_list.html" %}
+</div>

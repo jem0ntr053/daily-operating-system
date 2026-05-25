@@ -1,0 +1,17 @@
+<div class="pulse" id="pulse">
+  <div class="pulse-top">
+    <div class="pulse-title">Daily Pulse <span class="frac">{{ score }}/{{ total }}</span></div>
+    <div class="pulse-bar"><i style="width: {{ (score / total * 100) | round }}%"></i></div>
+    <div class="pulse-time">{% if plan.flow_minutes %}{{ plan.flow_minutes // 60 }}h {{ plan.flow_minutes % 60 }}m flow{% else %}tap to mark complete{% endif %}</div>
+  </div>
+  <div class="habits">
+    {% for h in habits %}
+    <div class="habit{% if plan.completed.get(h.id) %} done{% endif %}"
+         hx-post="/web/day/{{ day }}/habit/{{ h.id }}/toggle"
+         hx-target="#pulse" hx-swap="outerHTML">
+      <div class="habit-row"><span class="habit-name">{{ h.name }}</span><span class="habit-check">{% if plan.completed.get(h.id) %}✓{% endif %}</span></div>
+      <div class="habit-meta">{{ h.meta }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

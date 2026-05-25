@@ -1,0 +1,12 @@
+<ul class="task-list" id="tasklist-{{ area }}">
+  {% for t in plan.tasks.get(area, []) %}
+    {% set idx = loop.index0 %}
+    {% include "_task_row.html" %}
+  {% endfor %}
+  <form class="task-add" hx-post="/web/day/{{ plan.day }}/tasks/{{ area }}/add" hx-target="#tasklist-{{ area }}" hx-swap="outerHTML" hx-on::after-request="this.reset()">
+    <span>+</span>
+    <input name="text" placeholder="Add task — Enter to commit" style="flex:1">
+    <input name="tag" placeholder="tag" style="width:64px;background:transparent;border:none;outline:none;color:var(--text-mute);font-family:'JetBrains Mono';font-size:10px;text-transform:uppercase">
+    <button type="submit" style="display:none" aria-hidden="true" tabindex="-1"></button>
+  </form>
+</ul>

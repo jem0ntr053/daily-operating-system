@@ -1,0 +1,12 @@
+<div class="card">
+  <h3><span><span class="icon-dot" style="background:var(--green)"></span>Week Summary</span><span class="meta">W{{ week_number }}</span></h3>
+  {% for w in week %}
+  <a href="/day/{{ w.iso }}" class="week-row{% if w.is_view %} viewing{% endif %}{% if w.is_future %} future{% endif %}" style="text-decoration:none">
+    <span><span class="caret">{% if w.is_view %}▸{% endif %}</span> {{ w.label }}</span>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="dots">{% for i in range(w.total) %}<span class="{% if w.score and i < w.score %}on{% endif %}"></span>{% endfor %}</div>
+      <span class="frac">{{ w.score }}/{{ w.total }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>

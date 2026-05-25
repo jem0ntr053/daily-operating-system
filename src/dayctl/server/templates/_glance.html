@@ -1,0 +1,8 @@
+<div class="glance-grid" id="glance">
+  {% for key in ["scPlays","scFollowers","ytSubs","campaigns"] %}
+    {% set stat = persistent.stats[key] %}
+    {% set points = glance_points[key] %}
+    {% set editing = False %}
+    {% include "_glance_card.html" %}
+  {% endfor %}
+</div>
