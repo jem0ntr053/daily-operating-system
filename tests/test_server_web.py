@@ -167,3 +167,9 @@ def test_polish_elements_present(client):
     assert "open campaigns" in body                      # marketing area-stats
     assert "CROSS-DISCIPLINE" in body                    # idea vault tag
     assert "idea-bucket" in body                         # bucket pills
+
+
+def test_add_task_form_has_submit_button(client):
+    # text + tag inputs need a submit button for Enter-to-submit to work.
+    body = client.get("/day/2026-05-25").text
+    assert 'type="submit"' in body
