@@ -61,6 +61,17 @@ def _streak() -> int:
     return compute_streak(scores, threshold=len(HABIT_KEYS))
 
 
+def _spark_points(spark: list, w: int = 64, h: int = 40) -> str:
+    if not spark or len(spark) < 2:
+        return ""
+    lo, hi = min(spark), max(spark)
+    rng = (hi - lo) or 1
+    n = len(spark)
+    return " ".join(
+        f"{(i/(n-1))*w:.1f},{(h - (d-lo)/rng*h):.1f}" for i, d in enumerate(spark)
+    )
+
+
 def build_day_view(day: str) -> dict:
     plan = load_plan(day)
     today = date.today().isoformat()
@@ -83,4 +94,5 @@ def build_day_view(day: str) -> dict:
         "css_v": _css_version(),
         "week_number": date.fromisoformat(day).isocalendar()[1],
         "logged": len(list_days()),
+        "glance_points": {k: _spark_points(v.get("spark", [])) for k, v in load_persistent()["stats"].items()},
     }

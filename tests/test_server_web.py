@@ -125,10 +125,38 @@ def test_idea_add_delete(client, tmp_path, monkeypatch):
 
 def test_stat_update_appends_spark(client, tmp_path, monkeypatch):
     monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
-    client.post("/web/stats/ytSubs", data={"v": "12.5K", "d": "+10", "trend": "up"}, headers={"HX-Request": "true"})
+    r = client.post("/web/stats/ytSubs", data={"v": "12.5K", "d": "+10", "trend": "up"}, headers={"HX-Request": "true"})
     from dayctl.persistent import load_persistent
     st = load_persistent()["stats"]["ytSubs"]
     assert st["v"] == "12.5K" and st["spark"][-1] == 12.5
+    assert "glance-ytSubs" in r.text
+
+
+def test_web_carries_incomplete_tasks_forward(client):
+    from dayctl.storage import load_plan, save_plan
+    # seed an incomplete music task on a day
+    p = load_plan("2026-07-01")
+    p.tasks["music"] = [{"text": "carry me", "done": False, "tag": "", "carried": False}]
+    save_plan(p)
+    # open the NEXT day via the web -> should carry forward
+    client.get("/day/2026-07-02")
+    nxt = load_plan("2026-07-02")
+    assert any(t["text"] == "carry me" and t["carried"] for t in nxt.tasks["music"])
+
+
+def test_task_add_with_tag(client):
+    client.post("/web/day/2026-05-25/tasks/music/add", data={"text": "tagged task", "tag": "mix"}, headers={"HX-Request": "true"})
+    from dayctl.storage import load_plan
+    t = load_plan("2026-05-25").tasks["music"][-1]
+    assert t["text"] == "tagged task" and t["tag"] == "MIX"
+
+
+def test_glance_display_then_edit(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
+    body = client.get("/day/2026-05-25").text
+    assert "tap to update" in body            # display mode by default
+    edit = client.get("/web/stats/ytSubs/edit").text
+    assert 'name="v"' in edit                 # edit form on demand
 
 
 def test_polish_elements_present(client):

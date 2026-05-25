@@ -15,7 +15,7 @@ from dayctl.models import AREAS, HABIT_KEYS, _norm_task
 from dayctl.persistent import load_persistent, save_persistent, update_stat
 from dayctl.server.auth import require_token
 from dayctl.server.viewmodel import build_day_view
-from dayctl.storage import load_plan, save_plan
+from dayctl.storage import init_or_load_plan, load_plan, save_plan
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -66,8 +66,8 @@ def root() -> RedirectResponse:
 
 @router.get("/day/{day}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
 def view_day(request: Request, day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
-    ctx = build_day_view(day)
-    ctx["request"] = request
+    init_or_load_plan(day)
+    ctx = build_day_view(day); ctx["request"] = request
     return templates.TemplateResponse(request, "day.html", ctx)
 
 
@@ -76,12 +76,13 @@ def add_task(
     request: Request,
     cat: str,
     text: str = Form(""),
+    tag: str = Form(""),
     day: str = PathParam(..., pattern=_DAY_PATTERN),
 ) -> HTMLResponse:
     area = _resolve_area(cat)
     plan = load_plan(day)
     if text.strip():
-        plan.tasks.setdefault(area, []).append(_norm_task({"text": text.strip()}))
+        plan.tasks.setdefault(area, []).append(_norm_task({"text": text.strip(), "tag": tag.strip().upper()}))
         save_plan(plan)
     return _render_task_list(request, day, area)
 
@@ -191,12 +192,32 @@ def delete_idea(request: Request, idx: int) -> HTMLResponse:
     return _render_ideas(request)
 
 
+def _glance_card(request: Request, key: str, editing: bool) -> HTMLResponse:
+    p = load_persistent()
+    stat = p["stats"].get(key)
+    if stat is None:
+        raise HTTPException(404, "unknown stat")
+    from dayctl.server.viewmodel import _spark_points
+    ctx = {"request": request, "key": key, "stat": stat, "points": _spark_points(stat.get("spark", [])), "editing": editing}
+    return templates.TemplateResponse(request, "_glance_card.html", ctx)
+
+
+@router.get("/web/stats/{key}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def stat_display(request: Request, key: str) -> HTMLResponse:
+    return _glance_card(request, key, editing=False)
+
+
+@router.get("/web/stats/{key}/edit", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def stat_edit(request: Request, key: str) -> HTMLResponse:
+    return _glance_card(request, key, editing=True)
+
+
 @router.post("/web/stats/{key}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
 def edit_stat(request: Request, key: str, v: str = Form(""), d: str = Form(""), trend: str = Form("flat")) -> HTMLResponse:
     p = load_persistent()
     update_stat(p, key, {"v": v, "d": d, "trend": trend})
     save_persistent(p)
-    return templates.TemplateResponse(request, "_glance.html", {"request": request, "persistent": load_persistent()})
+    return _glance_card(request, key, editing=False)
 
 
 @router.post("/web/settings", dependencies=[Depends(require_token)])
