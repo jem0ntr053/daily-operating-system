@@ -186,3 +186,13 @@ def test_idea_edit_updates_text(client, tmp_path, monkeypatch):
     assert "edited idea" in r.text
     from dayctl.persistent import load_persistent
     assert load_persistent()["ideas"][0]["text"] == "edited idea"
+
+
+def test_idea_edit_changes_topic(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("dayctl.persistent.PERSISTENT_PATH", tmp_path / "persistent.json")
+    client.post("/web/ideas/add", data={"text": "beat idea", "bucket": "Music"}, headers={"HX-Request": "true"})
+    edit = client.get("/web/ideas/0/edit").text
+    assert "idea-edit-buckets" in edit          # topic pills in edit form
+    client.post("/web/ideas/0/save", data={"text": "beat idea", "bucket": "Content"}, headers={"HX-Request": "true"})
+    from dayctl.persistent import load_persistent
+    assert load_persistent()["ideas"][0]["from"] == "Content"

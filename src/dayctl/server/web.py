@@ -206,10 +206,13 @@ def ideas_edit(request: Request, idx: int) -> HTMLResponse:
 
 
 @router.post("/web/ideas/{idx}/save", response_class=HTMLResponse, dependencies=[Depends(require_token)])
-def ideas_save(request: Request, idx: int, text: str = Form("")) -> HTMLResponse:
+def ideas_save(request: Request, idx: int, text: str = Form(""), bucket: str = Form("")) -> HTMLResponse:
     p = load_persistent()
-    if 0 <= idx < len(p["ideas"]) and text.strip():
-        p["ideas"][idx]["text"] = text.strip()
+    if 0 <= idx < len(p["ideas"]):
+        if text.strip():
+            p["ideas"][idx]["text"] = text.strip()
+        if bucket.strip():
+            p["ideas"][idx]["from"] = bucket.strip()
         save_persistent(p)
     return _render_ideas(request)
 
