@@ -5,14 +5,13 @@ import hmac
 import os
 from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi import Path as PathParam
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from dayctl.models import HABIT_KEYS
+from dayctl.models import AREAS, HABIT_KEYS, _norm_task
 from dayctl.server.auth import require_token
 from dayctl.server.viewmodel import build_day_view
 from dayctl.storage import load_plan, save_plan
@@ -21,9 +20,24 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter()
-Category = Literal["app", "music"]
 
 _DAY_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
+
+_AREA_ALIAS = {"app": "code"}
+
+
+def _resolve_area(cat: str) -> str:
+    area = _AREA_ALIAS.get(cat, cat)
+    if area not in AREAS:
+        raise HTTPException(404, "unknown area")
+    return area
+
+
+def _render_task_list(request: Request, day: str, area: str) -> HTMLResponse:
+    ctx = build_day_view(day)
+    ctx["request"] = request
+    ctx["area"] = area
+    return templates.TemplateResponse(request, "_task_list.html", ctx)
 
 
 @router.get("/login")
@@ -56,37 +70,55 @@ def view_day(request: Request, day: str = PathParam(..., pattern=_DAY_PATTERN)) 
     return templates.TemplateResponse(request, "day.html", ctx)
 
 
-@router.post(
-    "/web/day/{day}/tasks/{cat}/{idx}/toggle",
-    response_class=HTMLResponse,
-    dependencies=[Depends(require_token)],
-)
+@router.post("/web/day/{day}/tasks/{cat}/add", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def add_task(
+    request: Request,
+    cat: str,
+    text: str = Form(""),
+    day: str = PathParam(..., pattern=_DAY_PATTERN),
+) -> HTMLResponse:
+    area = _resolve_area(cat)
+    plan = load_plan(day)
+    if text.strip():
+        plan.tasks.setdefault(area, []).append(_norm_task({"text": text.strip()}))
+        save_plan(plan)
+    return _render_task_list(request, day, area)
+
+
+@router.post("/web/day/{day}/tasks/{cat}/{idx}/toggle", response_class=HTMLResponse, dependencies=[Depends(require_token)])
 def toggle_task(
     request: Request,
-    cat: Category,
+    cat: str,
     idx: int,
     day: str = PathParam(..., pattern=_DAY_PATTERN),
 ) -> HTMLResponse:
-    if request.headers.get("HX-Request") != "true":
-        raise HTTPException(403, "HTMX request required")
+    area = _resolve_area(cat)
     plan = load_plan(day)
-    _area_alias = {"app": "code"}
-    area = _area_alias.get(cat, cat)
     tasks = plan.tasks.get(area, [])
-    if idx < 0 or idx >= len(tasks):
+    if not (0 <= idx < len(tasks)):
         raise HTTPException(404, "task index out of range")
     tasks[idx]["done"] = not tasks[idx]["done"]
     save_plan(plan)
-    return templates.TemplateResponse(
-        request,
-        "_task_row.html",
-        {
-            "t": tasks[idx],
-            "plan": plan,
-            "cat": cat,
-            "idx": idx,
-        },
-    )
+    ctx = build_day_view(day)
+    ctx["request"] = request
+    ctx.update({"t": load_plan(day).tasks[area][idx], "area": area, "idx": idx})
+    return templates.TemplateResponse(request, "_task_row.html", ctx)
+
+
+@router.post("/web/day/{day}/tasks/{cat}/{idx}/delete", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def delete_task(
+    request: Request,
+    cat: str,
+    idx: int,
+    day: str = PathParam(..., pattern=_DAY_PATTERN),
+) -> HTMLResponse:
+    area = _resolve_area(cat)
+    plan = load_plan(day)
+    tasks = plan.tasks.get(area, [])
+    if 0 <= idx < len(tasks):
+        tasks.pop(idx)
+        save_plan(plan)
+    return _render_task_list(request, day, area)
 
 
 _FIELD_ATTR = {"focus": "focus", "energy": "energy", "sleep": "sleep_hours", "mood": "mood", "bpm": "bpm"}

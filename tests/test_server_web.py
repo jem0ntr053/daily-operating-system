@@ -48,10 +48,22 @@ def test_toggle_returns_updated_fragment(client):
     assert b"checked" in content or b"done" in content
 
 
-def test_toggle_rejects_non_htmx(client):
+def test_toggle_works_without_htmx_header(client):
+    # The new design does not gate on HX-Request; toggle must succeed regardless.
     client.get("/day/2026-04-12")
     r = client.post("/web/day/2026-04-12/tasks/app/0/toggle")
-    assert r.status_code == 403
+    assert r.status_code == 200
+
+
+def test_task_add_toggle_delete(client):
+    client.post("/web/day/2026-05-24/tasks/music/add", data={"text": "mix bus"}, headers={"HX-Request": "true"})
+    from dayctl.storage import load_plan
+    assert load_plan("2026-05-24").tasks["music"][-1]["text"] == "mix bus"
+    idx = len(load_plan("2026-05-24").tasks["music"]) - 1
+    client.post(f"/web/day/2026-05-24/tasks/music/{idx}/toggle", headers={"HX-Request": "true"})
+    assert load_plan("2026-05-24").tasks["music"][idx]["done"] is True
+    client.post(f"/web/day/2026-05-24/tasks/music/{idx}/delete", headers={"HX-Request": "true"})
+    assert all(t["text"] != "mix bus" for t in load_plan("2026-05-24").tasks["music"])
 
 
 def test_day_page_renders_shell(client):

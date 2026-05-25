@@ -1,10 +1,7 @@
-<li id="task-{{ cat }}-{{ idx }}" class="task {% if t.done %}done{% endif %}">
-  <form hx-post="/web/day/{{ plan.day }}/tasks/{{ cat }}/{{ idx }}/toggle"
-        hx-target="#task-{{ cat }}-{{ idx }}"
-        hx-swap="outerHTML">
-    <button type="submit" aria-label="toggle">
-      <input type="checkbox" {% if t.done %}checked{% endif %} disabled>
-    </button>
-    <span>{{ t.task }}</span>
-  </form>
+<li id="task-{{ area }}-{{ idx }}" class="task {% if t.done %}done{% endif %}">
+  <span class="check" hx-post="/web/day/{{ plan.day }}/tasks/{{ area }}/{{ idx }}/toggle" hx-target="#task-{{ area }}-{{ idx }}" hx-swap="outerHTML"></span>
+  <span class="task-text" hx-post="/web/day/{{ plan.day }}/tasks/{{ area }}/{{ idx }}/toggle" hx-target="#task-{{ area }}-{{ idx }}" hx-swap="outerHTML">{{ t.text }}</span>
+  {% if t.carried %}<span class="carried-pill">carried</span>{% endif %}
+  {% if t.tag %}<span class="task-tag">{{ t.tag }}</span>{% endif %}
+  <span style="color:var(--text-mute);cursor:pointer;padding:0 4px" hx-post="/web/day/{{ plan.day }}/tasks/{{ area }}/{{ idx }}/delete" hx-target="#tasklist-{{ area }}" hx-swap="outerHTML" title="Delete">×</span>
 </li>

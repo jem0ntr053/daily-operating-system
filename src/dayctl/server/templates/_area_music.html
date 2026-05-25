@@ -1,0 +1,5 @@
+<div class="area-card" style="--accent:#f472b6">
+  <div class="area-head"><div class="area-title"><span class="swatch"></span>Music Studio</div><div class="area-tag">ABLETON</div></div>
+  <div class="wave">{% for i in range(48) %}<span class="{% if i < 32 %}played{% endif %}" style="height:{{ 6 + (i * 7) % 22 }}px;background:#f472b6"></span>{% endfor %}</div>
+  {% set area = "music" %}{% include "_task_list.html" %}
+</div>
