@@ -1,6 +1,6 @@
 """Tests for dayctl.storage."""
 
-from dayctl.storage import load_plan, save_plan, plan_path, list_days
+from dayctl.storage import load_plan, save_plan, plan_path, list_days, init_or_load_plan
 from dayctl.models import DayPlan
 
 
@@ -30,3 +30,33 @@ def test_list_days(day_env):
 
 def test_list_days_empty(day_env):
     assert list_days() == []
+
+
+def test_carry_forward_into_preexisting_day(day_env):
+    # Day A has an incomplete task.
+    a = DayPlan.new("2026-03-02")
+    a.tasks["social"] = [{"text": "ship short", "done": False, "tag": "", "carried": False}]
+    save_plan(a)
+    # Day B was pre-created empty (rolled_over defaults False) — simulates a day
+    # auto-created by navigation before carry-forward ran.
+    b = DayPlan.new("2026-03-03")
+    b.tasks["social"] = []
+    save_plan(b)
+
+    plan, carried = init_or_load_plan("2026-03-03")
+    assert "ship short" in carried
+    assert any(t["text"] == "ship short" and t["carried"] for t in plan.tasks["social"])
+    assert plan.rolled_over is True
+
+    # Idempotent: a second call must not duplicate or re-carry.
+    plan2, carried2 = init_or_load_plan("2026-03-03")
+    assert carried2 == []
+    assert sum(1 for t in plan2.tasks["social"] if t["text"] == "ship short") == 1
+
+
+def test_rolled_over_defaults_false_and_backfills():
+    p = DayPlan.new("2026-03-02")
+    assert p.rolled_over is False
+    d = p.to_dict()
+    d.pop("rolled_over")
+    assert DayPlan.from_dict(d).rolled_over is False
