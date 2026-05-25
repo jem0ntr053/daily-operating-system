@@ -82,3 +82,10 @@ def test_edit_sleep_maps_to_sleep_hours(client):
     client.post("/web/day/2026-05-24/field/sleep", data={"value": "7.5"}, headers={"HX-Request": "true"})
     from dayctl.storage import load_plan
     assert load_plan("2026-05-24").sleep_hours == "7.5"
+
+
+def test_week_card_links_and_renders(client):
+    r = client.get("/day/2026-05-24")
+    assert r.status_code == 200
+    assert "week-row" in r.text
+    assert 'href="/day/2026-05-' in r.text  # week rows link to days in that week
