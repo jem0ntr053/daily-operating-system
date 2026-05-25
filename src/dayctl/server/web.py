@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi import Path as PathParam
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -87,6 +87,20 @@ def toggle_task(
             "idx": idx,
         },
     )
+
+
+_FIELD_ATTR = {"focus": "focus", "energy": "energy", "sleep": "sleep_hours", "mood": "mood", "bpm": "bpm"}
+
+
+@router.post("/web/day/{day}/field/{name}", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def edit_field(name: str, value: str = Form(""), day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
+    attr = _FIELD_ATTR.get(name)
+    if attr is None:
+        raise HTTPException(404, "unknown field")
+    plan = load_plan(day)
+    setattr(plan, attr, value)
+    save_plan(plan)
+    return HTMLResponse('<span class="saved"><span class="dot"></span>Saved</span>')
 
 
 @router.post("/web/day/{day}/habit/{habit_id}/toggle", response_class=HTMLResponse, dependencies=[Depends(require_token)])

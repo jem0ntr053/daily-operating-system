@@ -69,3 +69,16 @@ def test_toggle_habit_flips_and_returns_pulse(client):
     assert "pulse" in r.text
     from dayctl.storage import load_plan
     assert load_plan("2026-05-24").completed["fast"] is True
+
+
+def test_edit_field_persists(client):
+    r = client.post("/web/day/2026-05-24/field/focus", data={"value": "ship the UI"}, headers={"HX-Request": "true"})
+    assert r.status_code in (200, 204)
+    from dayctl.storage import load_plan
+    assert load_plan("2026-05-24").focus == "ship the UI"
+
+
+def test_edit_sleep_maps_to_sleep_hours(client):
+    client.post("/web/day/2026-05-24/field/sleep", data={"value": "7.5"}, headers={"HX-Request": "true"})
+    from dayctl.storage import load_plan
+    assert load_plan("2026-05-24").sleep_hours == "7.5"

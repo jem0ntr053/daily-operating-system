@@ -1,0 +1,15 @@
+<div class="card">
+  <h3><span><span class="icon-dot" style="background:var(--cyan)"></span>Today's Focus</span><span class="meta">#1 priority</span></h3>
+  <div class="field">
+    <textarea name="value" placeholder="What is the ONE thing today?"
+      hx-post="/web/day/{{ day }}/field/focus" hx-trigger="change" hx-swap="none">{{ plan.focus }}</textarea>
+  </div>
+  <div class="focus-row">
+    <div class="field"><label>Energy</label><input name="value" value="{{ plan.energy }}" placeholder="low / med / high" hx-post="/web/day/{{ day }}/field/energy" hx-trigger="change" hx-swap="none"></div>
+    <div class="field"><label>Sleep (hrs)</label><input name="value" value="{{ plan.sleep_hours }}" hx-post="/web/day/{{ day }}/field/sleep" hx-trigger="change" hx-swap="none"></div>
+  </div>
+  <div class="focus-row" style="margin-top:10px">
+    <div class="field"><label>Mood</label><input name="value" value="{{ plan.mood }}" placeholder="locked-in / scattered" hx-post="/web/day/{{ day }}/field/mood" hx-trigger="change" hx-swap="none"></div>
+    <div class="field"><label>BPM target</label><input name="value" value="{{ plan.bpm }}" hx-post="/web/day/{{ day }}/field/bpm" hx-trigger="change" hx-swap="none"></div>
+  </div>
+</div>

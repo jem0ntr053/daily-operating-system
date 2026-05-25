@@ -1,0 +1,8 @@
+<div class="card">
+  <h3><span><span class="icon-dot" style="background:var(--purple)"></span>Schedule</span><span class="meta">{{ schedule|length }} BLOCKS</span></h3>
+  <div style="padding-left:6px">
+    {% for s in schedule %}
+    <div class="sched-row"><div class="sched-time">{{ s.time }}</div><div class="sched-block"><div class="title">{{ s.title }}</div></div></div>
+    {% endfor %}
+  </div>
+</div>
