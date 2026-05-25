@@ -89,3 +89,13 @@ def test_week_card_links_and_renders(client):
     assert r.status_code == 200
     assert "week-row" in r.text
     assert 'href="/day/2026-05-' in r.text  # week rows link to days in that week
+
+
+def test_add_and_delete_note(client):
+    r = client.post("/web/day/2026-05-24/notes/add", data={"text": "felt good"}, headers={"HX-Request": "true"})
+    assert r.status_code == 200 and "felt good" in r.text
+    from dayctl.storage import load_plan
+    assert load_plan("2026-05-24").notes[0]["text"] == "felt good"
+    r2 = client.post("/web/day/2026-05-24/notes/0/delete", headers={"HX-Request": "true"})
+    assert "felt good" not in r2.text
+    assert load_plan("2026-05-24").notes == []

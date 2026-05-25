@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hmac
 import os
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -113,3 +113,24 @@ def toggle_habit(request: Request, habit_id: str, day: str = PathParam(..., patt
     ctx = build_day_view(day)
     ctx["request"] = request
     return templates.TemplateResponse(request, "_pulse.html", ctx)
+
+
+@router.post("/web/day/{day}/notes/add", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def add_note(request: Request, text: str = Form(""), day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
+    plan = load_plan(day)
+    if text.strip():
+        now = datetime.now()
+        plan.notes.append({"text": text.strip(), "time": f"{now.hour:02d}:{now.minute:02d}"})
+        save_plan(plan)
+    ctx = build_day_view(day); ctx["request"] = request
+    return templates.TemplateResponse(request, "_notes.html", ctx)
+
+
+@router.post("/web/day/{day}/notes/{idx}/delete", response_class=HTMLResponse, dependencies=[Depends(require_token)])
+def delete_note(request: Request, idx: int, day: str = PathParam(..., pattern=_DAY_PATTERN)) -> HTMLResponse:
+    plan = load_plan(day)
+    if 0 <= idx < len(plan.notes):
+        plan.notes.pop(idx)
+        save_plan(plan)
+    ctx = build_day_view(day); ctx["request"] = request
+    return templates.TemplateResponse(request, "_notes.html", ctx)
