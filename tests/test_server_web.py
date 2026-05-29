@@ -37,6 +37,16 @@ def test_login_sets_cookie(client):
     assert "dayctl_token=tok" in r.headers.get("set-cookie", "")
 
 
+def test_login_cookie_is_persistent(client):
+    # Cookie must carry Max-Age so it survives a browser restart; a session
+    # cookie (no Max-Age/Expires) gets dropped on quit -> "Unauthorized".
+    from dayctl.server.app import create_app
+    c = TestClient(create_app())
+    r = c.get("/login?token=tok", follow_redirects=False)
+    set_cookie = r.headers.get("set-cookie", "").lower()
+    assert "max-age=" in set_cookie
+
+
 def test_toggle_returns_updated_fragment(client):
     client.get("/day/2026-04-12")
     r = client.post(

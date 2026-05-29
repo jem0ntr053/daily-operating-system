@@ -24,6 +24,8 @@ router = APIRouter()
 
 _DAY_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
+COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60  # ~10 years; single-user localhost
+
 _AREA_ALIAS = {"app": "code"}
 
 
@@ -47,11 +49,14 @@ def login(request: Request, token: str) -> RedirectResponse:
     if not expected or not hmac.compare_digest(token, expected):
         raise HTTPException(401, "bad token")
     resp = RedirectResponse(url="/", status_code=302)
+    # max_age makes this a persistent cookie that survives a browser restart;
+    # without it the session cookie is dropped on quit -> "Unauthorized".
     # Secure only over HTTPS so the cookie is actually stored on http://localhost
     # during local dev; SameSite=lax so link-based login works on first navigation.
     resp.set_cookie(
         "dayctl_token",
         token,
+        max_age=COOKIE_MAX_AGE,
         httponly=True,
         secure=request.url.scheme == "https",
         samesite="lax",
