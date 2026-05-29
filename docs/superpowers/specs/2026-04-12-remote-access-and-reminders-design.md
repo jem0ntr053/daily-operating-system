@@ -17,13 +17,13 @@ Out of scope for v1: calendar sync (one-way or two-way), multi-user auth, PWA in
 
 ## Architecture
 
-```
+```text
 ┌─ phone/browser ──────┐        ┌─ ntfy.sh ─┐
 │ HTML + HTMX (mobile) │        │ push API  │
 └──────────┬───────────┘        └─────▲─────┘
            │ HTTPS                    │ POST
            ▼                          │
-┌─ Fly.io app (single process) ──────┴──────┐
+┌─ Fly.io app (single process)  ──────┴──────┐
 │  FastAPI                                   │
 │   ├─ routes/web.py    (HTML via Jinja2)    │
 │   ├─ routes/api.py    (JSON for CLI)       │
@@ -69,8 +69,10 @@ Out of scope for v1: calendar sync (one-way or two-way), multi-user auth, PWA in
 `StorageBackend` protocol with `load_plan(date) -> DayPlan`, `save_plan(plan) -> None`, `list_days() -> list[str]`.
 
 Implementations:
+
 - `JSONBackend(root=~/.dayctl/days)` — current behavior, default for local CLI.
 - `SQLiteBackend(path)` — server default on Fly. Schema:
+
   ```sql
   CREATE TABLE plans (
     date       TEXT PRIMARY KEY,
@@ -78,6 +80,7 @@ Implementations:
     updated_at TEXT NOT NULL
   );
   ```
+
   Storing the plan as a JSON blob keyed by date keeps `DayPlan` the single source of truth and avoids schema migrations when fields evolve.
 - `RemoteBackend(base_url, token)` — used by `day --remote`; calls `/api/*`.
 
@@ -116,6 +119,7 @@ Streamlit app is retired.
 APScheduler runs inside the FastAPI process. One job ticks every minute and asks: "did any block in today's active profile just start since the last tick?" If yes, POST to ntfy.
 
 **Message shape:**
+
 - Title: block name (e.g., "Deep work").
 - Body: next 1–2 incomplete tasks from today's plan.
 - Priority: default; high for non-negotiables.
