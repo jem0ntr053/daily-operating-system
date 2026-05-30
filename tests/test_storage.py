@@ -54,6 +54,24 @@ def test_carry_forward_into_preexisting_day(day_env):
     assert sum(1 for t in plan2.tasks["social"] if t["text"] == "ship short") == 1
 
 
+def test_carry_forward_when_day_touched_before_yesterday_exists(day_env):
+    # Regression (#12): a day touched before its predecessor exists must not be
+    # permanently locked out of carry-forward. init_or_load_plan used to stamp
+    # rolled_over=True even when yesterday was absent, so tasks added to yesterday
+    # afterward never rolled in — they "vanished" instead of carrying.
+    #
+    # Day N+1 is created/visited first, while day N does not exist yet.
+    init_or_load_plan("2026-05-27")
+    # Day N is created afterward with an incomplete task.
+    n = DayPlan.new("2026-05-26")
+    n.tasks["social"] = [{"text": "carried task test", "done": False, "tag": "", "carried": False}]
+    save_plan(n)
+    # Revisiting day N+1 must now carry the incomplete task forward.
+    plan, carried = init_or_load_plan("2026-05-27")
+    assert "carried task test" in carried
+    assert any(t["text"] == "carried task test" and t["carried"] for t in plan.tasks["social"])
+
+
 def test_rolled_over_defaults_false_and_backfills():
     p = DayPlan.new("2026-03-02")
     assert p.rolled_over is False
