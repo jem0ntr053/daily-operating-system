@@ -70,13 +70,13 @@ Days can be materialized through paths that never attempt carry-forward:
 
 Since 3914a50 this self-heals on the next `init_or_load_plan` visit, but a fix applied to one creation path may not cover the others (discriminating experiment: 3D). Design options and must-hold rules: dayctl-architecture-contract; read issue #13 before structural fixes.
 
-### 2E. The `day` shim on PATH is broken — autoinit silently fails [verified 2026-07-09]
+### 2E. The `day` shim on PATH is broken — autoinit silently fails [RESOLVED 2026-07-09, issue #15]
 
-`/opt/homebrew/bin/day` is a 185-byte console-script shim whose shebang points at `/opt/homebrew/opt/python@3.11/bin/python3.11` — **which no longer exists** (homebrew python upgraded). Consequences observed today:
+`/opt/homebrew/bin/day` is a 185-byte console-script shim whose shebang points at `/opt/homebrew/opt/python@3.11/bin/python3.11` — **which no longer exists** (homebrew python upgraded). Consequences observed before the fix:
 
-- `launchctl list com.dayos.autoinit` → `LastExitStatus = 19968` (exit code 78): the 6 AM `day init` job fails every run, so days are not auto-created — exactly the precondition for the #12/#13 bug class.
-- Its log `/tmp/dayos-autoinit.log` is empty (0 bytes) — the job never gets far enough to write.
-- Any terminal `day` invocation via PATH hits the same dead shebang; the working interpreter is the repo venv (`.venv/bin/python -m dayctl`) — point the autoinit plist at `.venv/bin/day`.
+- `launchctl list com.dayos.autoinit` → `LastExitStatus = 19968` (exit code 78): the 6 AM `day init` job failed every run, so days were not auto-created — exactly the precondition for the #12/#13 bug class.
+- Its log `/tmp/dayos-autoinit.log` stayed empty (0 bytes) — the job never got far enough to write.
+- RESOLUTION: installed plist and `scripts/com.dayos.autoinit.plist` now invoke `.venv/bin/day` (absolute path); verified exit 0 after bootout/bootstrap/kickstart. The PATH shim itself is still dead — any terminal `day` via PATH fails; use `.venv/bin/day` or `.venv/bin/python -m dayctl`.
 
 Also note there was a data-integrity scare around the #12 fix: `~/.dayctl/days.bak-20260530T221340/` (43 day files, backed up 2026-05-30 — the same day 3914a50 landed). Before any risky storage change, take the same kind of timestamped backup of `~/.dayctl/days/`.
 

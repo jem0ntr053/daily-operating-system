@@ -2,13 +2,11 @@
 Apply cc-config (guardrails kit + project skill library) to daily-operating-system and finish the repo's open work.
 
 ## Now
-Onboarding complete and committed (8361f19 kit, e90906a skills). Session paused.
+Onboarding committed (8361f19, e90906a); both live bugs fixed and deployed (issues #14, #15).
 
 ## Next
-1. Fix scheduler reminder bug: src/dayctl/server/scheduler.py:60 `_body_for` reads `t['task']`, normalized key is `'text'` — add failing test, fix, restart com.dayos.web.
-2. Fix 6 AM auto-init: /opt/homebrew/bin/day shim has dead python@3.11 shebang; repoint com.dayos.autoinit plist (~/Library/LaunchAgents) at .venv/bin/day; verify exit 0 via `launchctl list | grep dayos`.
-3. Issue #13: route all day creation through init_or_load_plan (design options in .claude/skills/dayctl-architecture-contract/SKILL.md).
-4. Issues #11 (Tailscale phone access), #9 (Settings view).
+1. Issue #13: route all day creation through init_or_load_plan (design options in .claude/skills/dayctl-architecture-contract/SKILL.md).
+2. Issues #11 (Tailscale phone access), #9 (Settings view).
 
 ## Constraints
 No Co-Authored-By lines in commits. GitHub issues are canonical — no markdown punchlists mirroring them. User commits/merges; put "Closes #N" in PR bodies.
@@ -26,10 +24,12 @@ Kit source: ~/cc-config/kit; CLAUDE.md kit zones must stay byte-identical (upgra
 
 ## Done
 cc-config onboarding — RESULT: kit v1.0 installed (M8 9/9 checks green), 5 skills authored + 3-pass reviewed (34 fixes applied), committed 8361f19 + e90906a; 146 tests pass.
+Scheduler reminder fix (#14) — RESULT: reproduced KeyError 'task' at scheduler.py:60, TDD red→green, suite 148 passed, deployed via kickstart (health=200).
+Autoinit fix (#15) — RESULT: installed plist + scripts template repointed at .venv/bin/day; exit 78 → 0; log wrote "Created: 2026-07-09 (6:30 AM wake)".
 
 ## Open items
-- Verify scheduler KeyError empirically: `.venv/bin/python -c "from dayctl.server.scheduler import _body_for; print(_body_for({'app':[{'text':'x','done':False,'tag':'','carried':False}]}))"` (expect KeyError — then fix).
-- File GitHub issues for the two live bugs (issues canonical; currently only in skills/chips/memory).
+- Reminders still off in live service: com.dayos.web plist env lacks NTFY_TOPIC (and DAYCTL_ENABLE_SCHEDULER) — user must configure to activate the now-fixed path. Note separate com.dayos.notify job also exists (exit 0) — clarify which mechanism is intended.
+- /opt/homebrew/bin/day PATH shim still dead — terminal `day` fails; either delete the stale shim or leave (venv is canonical).
 - Delete CLAUDE.md.pre-migration-20260709-1054 after reviewing docs/guardrails/MIGRATION-LOG.md.
 - Reconcile stale worktree .claude/worktrees/feature+web-ui-polish (uncommitted style.css/base.html/day.html changes).
 - Compare ~/cc-config/kit vs plugin cache kit: `diff -rq ~/cc-config/kit /Users/montrose/.claude/plugins/cache/cc-config-marketplace/cc-config/1.0.0/kit`.
