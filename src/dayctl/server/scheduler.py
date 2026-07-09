@@ -57,7 +57,7 @@ def _body_for(plan: Optional[DayPlan]) -> str:
     lines: list[str] = []
     for cat, tasks in pending.items():
         for t in tasks[:2]:
-            lines.append(f"• {t['task']}")
+            lines.append(f"• {t['text']}")
     return "\n".join(lines)
 
 

@@ -133,7 +133,7 @@ Backend selection (`src/dayctl/storage_backends/__init__.py`): `DAYCTL_REMOTE` s
 
 ### Reminders (ntfy)
 
-Server-side scheduler (`src/dayctl/server/scheduler.py` + `ntfy.py`, APScheduler tick every minute): fires an HTTP POST to the **full topic URL** in `NTFY_TOPIC` at each schedule-block boundary, with up to 2 pending tasks per category in the body (KNOWN BUG as of 2026-07-09: `_body_for` at scheduler.py:60 reads `t['task']` instead of `t['text']`, so reminders with pending tasks fail with a swallowed KeyError and never send.). Needs `DAYCTL_ENABLE_SCHEDULER=1` to run at all; silently no-ops if `NTFY_TOPIC` is unset. Optional: `NTFY_AUTH` (bearer for protected topics), `DAYCTL_QUIET_UNTIL=YYYY-MM-DD` (suppress through that date, inclusive).
+Server-side scheduler (`src/dayctl/server/scheduler.py` + `ntfy.py`, APScheduler tick every minute): fires an HTTP POST to the **full topic URL** in `NTFY_TOPIC` at each schedule-block boundary, with up to 2 pending tasks per category in the body (BUG FIXED 2026-07-09, issue #14: `_body_for` at scheduler.py:60 read the legacy `t['task']` key, silently killing reminders with pending tasks; regression tests in tests/test_scheduler_logic.py). Needs `DAYCTL_ENABLE_SCHEDULER=1` to run at all; silently no-ops if `NTFY_TOPIC` is unset. Optional: `NTFY_AUTH` (bearer for protected topics), `DAYCTL_QUIET_UNTIL=YYYY-MM-DD` (suppress through that date, inclusive).
 
 ## Env var matrix
 
