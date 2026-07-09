@@ -14,4 +14,5 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .DS_Store
-.claude/
+.claude/*
+!.claude/skills/
