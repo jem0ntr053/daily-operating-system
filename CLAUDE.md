@@ -1,17 +1,46 @@
-# CLAUDE.md
+<!-- guardrails-kit: v1.0 migrated 2026-07-09 -->
+<!-- BEGIN KIT CORE v1.0 -->
+<!-- Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
+These rules compensate for known model failure modes. They are procedures, not advice — follow them literally.
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Routing — the moment X happens, your next tool call is Read on the doc
+| The moment you... | Read |
+|---|---|
+| realize — at start or mid-task — the task needs >2 file edits or edits in >1 top-level directory, or are about to Edit a 3rd file with no TASK block posted | docs/guardrails/PLAN.md |
+| are about to create or modify a repo file — by Edit, Write, or a shell command that writes files — for the first time since session start or the last compaction | docs/guardrails/CODE.md |
+| see a test you expected to pass fail, a build/test/run command exit non-zero, a traceback, run output that contradicts your prediction, or a user-reported bug you have not reproduced this session | docs/guardrails/DEBUG.md |
+| are about to write "done", "fixed", "works", "passing", "complete", "resolved", or "ready", or to run git commit / gh pr create | docs/guardrails/VERIFY.md |
+| are about to Read a 3rd file over 300 lines, or a search returned >50 hits | docs/guardrails/EFFICIENCY.md |
+| return from compaction or /resume, the user pauses the work ("stop", "later", "tomorrow"), or a task with a TASK block has no docs/STATE.md | docs/guardrails/SESSION.md |
+| no row above matches but the work feels risky | docs/guardrails/PLAN.md |
 
-## Commands
+Row matched: write `TRIGGER: <event> -> <doc>`; your next tool call is Read on that doc, in the same message, with no acting tool call beside it (other triggered Reads may batch with it). 2+ rows match at once? Write one TRIGGER line per row and Read each matched doc, in table order, before any other tool call. Already Read the doc since the last compaction? Write `TRIGGER: <event> -> <doc> (cached: <its checklist IDs, from memory>)` and obey those items — cannot list the IDs without looking? It is not cached: Read the doc. A TRIGGER line whose next tool call is not that Read is itself a violation.
+
+## Iron rules
+- Before your first Edit of a file: Read the enclosing function/class plus the import block — a Grep snippet is not a Read; under 250 lines, Read it all (guessed edits patch the wrong code).
+- Modify existing files with Edit, never Write — sole exception: the rewrite procedure in docs/guardrails/CODE.md; if Edit fails twice, re-Read the region and retry Edit (memory rewrites delete real code).
+- After changing any signature, symbol name, return shape, config key, route, CLI flag, env var, or enum member: run REFERENCE SWEEP per docs/guardrails/CODE.md (missed callers break silently).
+- Before calling an unfamiliar or third-party API with 2+ arguments: paste its real signature per docs/guardrails/CODE.md C5 (plausible is not real).
+- Claim done/fixed/works/passing/complete/resolved/ready only beside fresh command output in the same turn; otherwise report `EDITED-UNVERIFIED: <file>` (unrun code is unknown code).
+- Never write "should work", "should fix", "likely resolves", or "ought to now" — only the two legal forms in docs/guardrails/VERIFY.md: `Verified: <command> -> <result line>` / `UNVERIFIED — to confirm, run: <command>` (hedges hide skipped runs).
+- Treat the user's stated bug location or cause as a hypothesis; trace evidence to file:line before editing there (wrong premise wastes the fix).
+- Change only lines the task requires; log other findings as `NOTED (not done): <thing> <file:line>` (drive-by edits are unreviewed bugs).
+- Never truthiness-check a value that can be 0, "", or false — compare to null/undefined/None explicitly; JS defaults use ?? (zero is data).
+- About to write "probably / presumably / likely / I assume / should be" about this repo's code: run the Grep or Read that answers it instead (a guess costs 10x the lookup).
+- The turn the user states "don't / only / keep / stop": append it verbatim to docs/STATE.md `## Constraints` — file missing? Create it per docs/guardrails/SESSION.md S2 (unwritten constraints decay within 50 turns).
+- Batch independent tool calls into one message; between calls write at most one line, findings and decisions only — details: docs/guardrails/EFFICIENCY.md E5/E6 (narration buries findings).
+<!-- END KIT CORE -->
+
+## Project
 
 ```bash
 # Install (editable mode, no external deps)
-pip install -e .
+.venv/bin/pip install -e .
 
 # Run tests
-pytest tests/              # all tests
-pytest tests/test_cli.py   # single file
-pytest -k test_week -v     # single test by name
+.venv/bin/python -m pytest tests/              # all tests
+.venv/bin/python -m pytest tests/test_cli.py   # single file
+.venv/bin/python -m pytest -k test_week -v     # single test by name
 
 # Run the CLI
 day init                   # primary command
@@ -19,35 +48,26 @@ dayctl init                # alias (both installed via pyproject.toml)
 python -m dayctl init      # module invocation
 
 # Run the web dashboard (optional server extras)
-pip install -e '.[server]'
-DAYCTL_TOKEN=dev uvicorn dayctl.server.app:create_app --factory --port 8000
+.venv/bin/pip install -e '.[server]'
+DAYCTL_TOKEN=dev .venv/bin/uvicorn dayctl.server.app:create_app --factory --port 8000
 # then open http://127.0.0.1:8000/login?token=dev
 # (persistent local service via launchd: see README "Run the web dashboard locally")
 ```
 
-## Architecture
-
-The CLI core is pure stdlib (`src/dayctl/`); an optional FastAPI web layer lives under `src/dayctl/server/` (installed via the `[server]` extra, not imported by the CLI). Core dependency flow:
-
-```
-cli.py → models.py    (DayPlan dataclass, schedule profiles, scoring)
-       → storage.py   (JSON persistence to ~/.dayctl/days/)
-       → display.py   (ANSI terminal rendering, respects NO_COLOR)
-```
-
-- **models.py** — `DayPlan` dataclass, `SCHEDULE_PROFILES` dict (5 profiles auto-detected by weekday), `score_plan()`, `profile_for_date()`. No I/O.
-- **storage.py** — `load_plan()`/`save_plan()` read/write JSON files at `~/.dayctl/days/{YYYY-MM-DD}.json`. `load_plan()` auto-creates missing days.
-- **display.py** — Color output via `_c(code, text)` helper that checks `NO_COLOR` env and `isatty()`. `print_plan()` for full view, `print_score_table()` for week/history/summary.
-- **cli.py** — argparse with subcommands. Each `cmd_*` handler follows: resolve date → load plan → mutate → save → print. `app` and `music` are top-level aliases for `task app` and `task music`.
-- **server/** (optional, `[server]` extra) — FastAPI "Daily OS" dashboard, server-rendered with Jinja + HTMX: `app.py` (app factory), `web.py` (HTML/HTMX routes), `api.py` (JSON API), `auth.py` (bearer/cookie token), `scheduler.py` (ntfy reminders), `viewmodel.py` (template context), plus `templates/` + `static/`. Cross-day ideas/settings/stats persist to `~/.dayctl/persistent.json` via `persistent.py`. Deploy: `Dockerfile` + `fly.toml` (Fly.io) or `scripts/com.dayos.web.plist` (local launchd).
-
-## Testing
-
-Tests use a `day_env` fixture (in `conftest.py`) that patches `storage.DATA_DIR` and `storage.DAYS_DIR` to `tmp_path` — no real filesystem side effects. CLI integration tests capture stdout via `monkeypatch` on `sys.argv` and `sys.stdout`.
-
-## Key Patterns
-
-- All dates are ISO strings (`YYYY-MM-DD`). `resolve_date()` in cli.py handles `today`/`yesterday` aliases.
+- All dates are ISO strings (`YYYY-MM-DD`). `resolve_date()` in cli.py handles `today`/`yesterday`, day names, and `-N` (days-ago) aliases.
 - Saturday defaults to `saturday_no_show`; use `--profile saturday_show` to override.
 - `DayPlan.new(day_str, profile_key=None)` is the factory — auto-selects schedule profile from weekday if no override given.
-- Tasks use `list[dict]` with `{"task": str, "done": bool}` — 1-based indexing at the CLI layer, 0-based internally.
+- Tasks are normalized by `_norm_task` (models.py) to `{"text": str, "done": bool, "tag": str, "carried": bool}` — `"task"` is accepted only as a legacy input key. 1-based indexing at the CLI layer, 0-based internally.
+- Working on architecture / module layout -> Read docs/guardrails/PROJECT.md#architecture
+- Writing or debugging tests -> Read docs/guardrails/PROJECT.md#testing
+- Deep dives: .claude/skills/dayctl-*/SKILL.md (architecture-contract, build-and-env, validation-and-qa, run-and-operate, debugging-playbook)
+
+<!-- BEGIN KIT FOOTER v1.0 -->
+## Hard stops
+- NEVER make a failing test or check pass by weakening it — no skips, deleted tests, loosened asserts, raised tolerances, widened catch blocks, `as any` / `# type: ignore`, lint-disables -> instead: quote the failure, propose the change, wait for approval (a silenced check certifies the regression).
+- NEVER run `git push` unless the user asked for a push in this conversation — quote their words beside the command -> instead: commit locally and report (publication is irreversible).
+- NEVER kill processes by image name (`taskkill /IM node.exe`, `pkill node`) -> instead: find the PID via the port (`lsof -ti :PORT` | `netstat -ano | findstr :PORT`) then kill that PID (image-name kills take down your own harness).
+- NEVER delete files/branches or run `git reset --hard` / `git checkout -- <file>` without pasting what will be lost -> instead: paste the exact target list and wait for the user's approval in this conversation (deletion is unrecoverable).
+
+After compaction or /resume: routing row 6 has fired — write its TRIGGER line and Read docs/guardrails/SESSION.md (S1 runs first). Docs read before compaction no longer count as read: `(cached)` is invalid until you Read the doc again.
+<!-- END KIT FOOTER -->
