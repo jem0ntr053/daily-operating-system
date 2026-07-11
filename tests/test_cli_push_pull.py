@@ -32,6 +32,20 @@ def test_push_copies_local_to_remote(server, tmp_path):
     assert remote.load_plan("2026-04-12").focus == "pushed"
 
 
+def test_push_missing_local_day_exits(server, tmp_path):
+    from dayctl.storage_backends.json_backend import JSONBackend
+    from dayctl.storage_backends.remote_backend import RemoteBackend
+    from dayctl.cli import push_day
+
+    local = JSONBackend(root=tmp_path / "local")
+    remote = RemoteBackend(base_url="http://testserver", token="tok")
+    remote._client = server
+
+    with pytest.raises(SystemExit):
+        push_day("2026-04-13", local, remote)
+    assert not local.exists("2026-04-13")  # no empty day materialized
+
+
 def test_pull_copies_remote_to_local(server, tmp_path):
     from dayctl.storage_backends.json_backend import JSONBackend
     from dayctl.storage_backends.remote_backend import RemoteBackend

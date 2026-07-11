@@ -314,6 +314,10 @@ def cmd_streak(args: argparse.Namespace) -> None:
 
 def push_day(day_str, local, remote) -> None:
     """Copy a day from local backend to remote backend."""
+    # Backends no longer auto-create (#13); pushing a nonexistent day used to
+    # silently materialize an empty local day first.
+    if not local.exists(day_str):
+        raise SystemExit(f"No local day {day_str} to push")
     plan = local.load_plan(day_str)
     remote.save_plan(plan)
 

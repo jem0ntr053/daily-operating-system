@@ -154,6 +154,21 @@ def test_web_carries_incomplete_tasks_forward(client):
     assert any(t["text"] == "carry me" and t["carried"] for t in nxt.tasks["music"])
 
 
+def test_web_mutation_on_missing_day_carries_forward(client):
+    # #13 acceptance: a mutation route hitting a nonexistent day must
+    # materialize it THROUGH the carry-forward path, not around it.
+    from dayctl.storage import load_plan, save_plan, exists
+    p = load_plan("2026-07-04")
+    p.tasks["music"] = [{"text": "carry via post", "done": False, "tag": "", "carried": False}]
+    save_plan(p)
+    assert not exists("2026-07-05")
+    client.post("/web/day/2026-07-05/tasks/music/add", data={"text": "fresh task"}, headers={"HX-Request": "true"})
+    nxt = load_plan("2026-07-05")
+    assert any(t["text"] == "carry via post" and t["carried"] for t in nxt.tasks["music"])
+    assert any(t["text"] == "fresh task" for t in nxt.tasks["music"])
+    assert nxt.rolled_over is True
+
+
 def test_task_add_with_tag(client):
     client.post("/web/day/2026-05-25/tasks/music/add", data={"text": "tagged task", "tag": "mix"}, headers={"HX-Request": "true"})
     from dayctl.storage import load_plan
