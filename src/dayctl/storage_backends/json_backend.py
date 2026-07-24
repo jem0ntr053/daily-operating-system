@@ -25,9 +25,7 @@ class JSONBackend:
         self._ensure()
         path = self._path(day_str)
         if not path.exists():
-            plan = DayPlan.new(day_str)
-            self.save_plan(plan)
-            return plan
+            raise KeyError(day_str)
         data = json.loads(path.read_text(encoding="utf-8"))
         return DayPlan.from_dict(data)
 

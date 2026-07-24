@@ -9,10 +9,10 @@ def json_backend(tmp_path):
     return JSONBackend(root=tmp_path / "days")
 
 
-def test_load_missing_day_creates_plan(json_backend):
-    plan = json_backend.load_plan("2026-04-12")
-    assert isinstance(plan, DayPlan)
-    assert plan.day == "2026-04-12"
+def test_load_missing_day_raises(json_backend):
+    # Backends never materialize (#13); creation lives in storage.init_or_load_plan.
+    with pytest.raises(KeyError):
+        json_backend.load_plan("2026-04-12")
 
 
 def test_save_then_load_roundtrips(json_backend):
@@ -48,9 +48,9 @@ def backend(request, json_backend, sqlite_backend):
     return {"json": json_backend, "sqlite": sqlite_backend}[request.param]
 
 
-def test_contract_load_missing_creates(backend):
-    plan = backend.load_plan("2026-04-12")
-    assert plan.day == "2026-04-12"
+def test_contract_load_missing_raises(backend):
+    with pytest.raises(KeyError):
+        backend.load_plan("2026-04-12")
 
 
 def test_contract_roundtrip(backend):

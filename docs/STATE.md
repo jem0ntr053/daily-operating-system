@@ -2,10 +2,10 @@
 Apply cc-config (guardrails kit + project skill library) to daily-operating-system and finish the repo's open work.
 
 ## Now
-Onboarding committed (8361f19, e90906a); both live bugs fixed and deployed (issues #14, #15).
+Issue #13 implemented on branch feature/issue-13-creation-paths (design: fold carry into load_plan — user-picked 2026-07-10). Suite 151 passed. Pending: commit, PR (user must approve push), post-merge kickstart deploy.
 
 ## Next
-1. Issue #13: route all day creation through init_or_load_plan (design options in .claude/skills/dayctl-architecture-contract/SKILL.md).
+1. Issue #13: commit + PR with "Closes #13" (push needs user approval); after merge, `launchctl kickstart -k gui/$(id -u)/com.dayos.web`.
 2. Issues #11 (Tailscale phone access), #9 (Settings view).
 
 ## Constraints
@@ -17,7 +17,8 @@ DECISION: .gitignore narrowed to `.claude/*` + `!.claude/skills/` — skill libr
 DECISION: on conflict between docs/guardrails/PROJECT.md (verbatim archive) and dayctl-architecture-contract skill, the skill is canonical.
 
 ## Facts
-Test command: `.venv/bin/python -m pytest tests/ -q` -> 146 passed (2026-07-09).
+Test command: `.venv/bin/python -m pytest tests/ -q` -> 151 passed (2026-07-10, issue-13 branch).
+Storage contract since #13 fix: backends raise KeyError on missing day; storage.load_plan delegates to init_or_load_plan (every load may create+carry).
 Dashboard: launchd com.dayos.web, port 8000, logs ~/.dayctl/web.log (installed plist diverges from repo scripts/com.dayos.web.plist which says /tmp/dayos-web.log). No auto-reload: `launchctl kickstart -k gui/$(id -u)/com.dayos.web` to deploy.
 Task dict shape: `{"text","done","tag","carried"}` via _norm_task (models.py:163); "task" legacy input key only.
 Kit source: ~/cc-config/kit; CLAUDE.md kit zones must stay byte-identical (upgrade = block swap).

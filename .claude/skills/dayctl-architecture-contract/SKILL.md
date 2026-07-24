@@ -37,26 +37,26 @@ display ─┘        (models.py depends on NOTHING in the package)
 
 If a change breaks one of these arrows (e.g. models.py gaining a file read, cli.py importing server code), that is the bug — do not "fix" it by weakening the rule.
 
-## Day materialization — the load-bearing decision and its footgun
+## Day materialization — single choke point (issue #13, fixed)
 
-Two creation paths exist ON PURPOSE, and their split is the repo's known-weak point (issue #13, open as of 2026-07-09):
+All day creation flows through `init_or_load_plan`; issue #13's footgun (backend auto-create without carry) is closed:
 
 | Path | Where | Carry-forward? | Profile override? |
 |---|---|---|---|
-| `init_or_load_plan(day, profile_key)` | `storage.py:53` | YES — attempts it, idempotent via `rolled_over` flag | YES |
-| `load_plan(day)` → backend auto-create (`DayPlan.new`) | `json_backend.py:24`, `sqlite_backend.py:37` | NO | NO |
+| `init_or_load_plan(day, profile_key)` | `storage.py:57` | YES — attempts it, idempotent via `rolled_over` flag | YES |
+| `load_plan(day)` — delegates to `init_or_load_plan(day)[0]` | `storage.py:40` | YES (via delegation) | NO — weekday default via `DayPlan.new` |
 
-Callers today: CLI `day init` and web `GET /day/{day}` (`server/web.py:74`) use `init_or_load_plan`. Every other CLI handler and every web/API mutation route (`add_task`, `toggle_task`, `delete_task`, `edit_field`, ...) uses bare `load_plan` — which silently materializes a missing day with `rolled_over=False` and no carry attempt.
+Backends NEVER materialize: backend `load_plan` on a missing day raises `KeyError` (json_backend, sqlite_backend; contract comment on the Protocol in `storage_backends/__init__.py`). `RemoteBackend.load_plan` looks like an exception — the server materializes on GET — but it does so server-side through its own `storage.load_plan`, so carry is still attempted. `push_day` (cli.py) guards with `exists()` and exits rather than materializing an empty local day. Consequence for callers: any `load_plan` of a not-yet-rolled-over day may WRITE (create + carry) — reads are not side-effect-free.
 
 Rules that must hold when touching this area:
 
-- [ ] `rolled_over` is set to `True` ONLY after a real predecessor day existed and carry-forward ran. Setting it when yesterday is absent was bug #12 (fixed in commit `3914a50`); the comment block in `storage.py:65-70` is the contract — keep it.
+- [ ] `rolled_over` is set to `True` ONLY after a real predecessor day existed and carry-forward ran. Setting it when yesterday is absent was bug #12 (fixed in commit `3914a50`); the comment block in `storage.py:69-74` is the contract — keep it.
 - [ ] Carry-forward is idempotent two ways: the `rolled_over` flag (never runs twice) and text dedup inside `carry_forward()` (`models.py:324` — a task whose `text` already exists in the target area is skipped).
 - [ ] Carried tasks get `"carried": true` so the UI can distinguish them.
-- [ ] Any NEW code path that can materialize a day must use `init_or_load_plan`, not `load_plan`. Do not add more instances of the footgun; issue #13's acceptance is "no code path creates a day record without a carry-forward attempt."
+- [ ] Any NEW code path that can materialize a day must go through `storage.load_plan` or `init_or_load_plan` — never a backend's methods directly. #13's acceptance holds: "no code path creates a day record without a carry-forward attempt." Backends raising `KeyError` on missing days is the enforcement — do not reintroduce backend auto-create.
 - [ ] `day init --force` works by delete-then-`init_or_load_plan` (`cli.py:72-76`), not by overwrite — preserve that, it's what makes forced re-init re-run carry-forward.
 
-Why not just fold carry-forward into `load_plan`? Undecided — issue #13 lists three candidate designs (mutation routes call `init_or_load_plan`; fold carry into auto-create; stop auto-creating). No option has been chosen. If you implement one, put "Closes #13" in the PR body so the user's merge closes it, and update this section.
+Design history: issue #13 listed three candidates (mutation routes call `init_or_load_plan`; fold carry into the load path; stop auto-creating entirely). User picked the fold (2026-07-10): single choke point, zero caller edits, kills the sync-helper footgun too. Rejected: per-caller `init_or_load_plan` (footgun persists structurally), explicit-init-only (breaks documented auto-create, biggest test blast radius).
 
 ## Data-shape contract
 
@@ -80,7 +80,7 @@ Facts here override stale prose elsewhere:
 
 | # | Weak point | Status |
 |---|---|---|
-| W1 | Duplicate day-materialization paths (see section above) | Open, issue #13; hardest live problem |
+| W1 | Duplicate day-materialization paths | FIXED 2026-07-10 (issue #13): `load_plan` delegates to `init_or_load_plan`; backends raise `KeyError` on missing days |
 | W2 | `save_persistent()` and `save_config()` use direct `write_text` — NOT the tmp+replace atomic pattern the day files get | Open, unfiled; candidate cleanup |
 | W3 | No cross-process locking: CLI, launchd auto-init, and the web server can read-modify-write the same day concurrently; last writer wins silently | Accepted risk for a single-user tool; be aware when adding automation |
 | W4 | `_backend()` lru_cache means env changes after the first storage call are ignored. `cli.py:main()` must call `_reset_backend_cache()` after applying `--remote`/`--token` — any new code that mutates `DAYCTL_REMOTE`/`DAYCTL_STORAGE`/`DAYCTL_TOKEN` mid-process must do the same | By design; footgun documented |
@@ -100,8 +100,7 @@ All claims verified against the working tree on 2026-07-09 (branch `develop`, HE
 
 - Layering (models.py purity): `grep -n "^import\|^from" src/dayctl/models.py` — expect only `__future__`, `dataclasses`, `datetime`, `typing`
 - CLI/server isolation: `grep -rn "dayctl\.server" src/dayctl/*.py` — expect zero import lines (a help-string mention in cli.py is fine)
-- Day-creation call sites (W1): `grep -rn "DayPlan.new\|init_or_load_plan" src/dayctl --include="*.py"` — auto-create should still exist only in json_backend.py, sqlite_backend.py, storage.py
-- Issue #13 status: `gh issue view 13` — if closed, rewrite the materialization section
+- Day-creation call sites (W1, fixed): `grep -rn "DayPlan.new" src/dayctl --include="*.py"` — expect hits ONLY in models.py (definition) and storage.py (`init_or_load_plan`); a hit in a backend means auto-create was reintroduced
 - Task shape: `grep -n "_norm_task" src/dayctl/models.py` and read the returned dict keys
 - Profile count: `python -c "from dayctl.models import SCHEDULE_PROFILES; print(len(SCHEDULE_PROFILES), list(SCHEDULE_PROFILES))"`
 - Atomic-write gap (W2): `grep -n "write_text" src/dayctl/persistent.py src/dayctl/storage.py src/dayctl/storage_backends/json_backend.py` — only json_backend should pair it with `.replace(`
