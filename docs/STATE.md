@@ -2,11 +2,10 @@
 Apply cc-config (guardrails kit + project skill library) to daily-operating-system and finish the repo's open work.
 
 ## Now
-Issue #13 implemented on branch feature/issue-13-creation-paths (design: fold carry into load_plan — user-picked 2026-07-10). Suite 151 passed. Pending: commit, PR (user must approve push), post-merge kickstart deploy.
+Issue #13 merged (PR #16 -> develop, 8869d0a) and deployed to live dashboard (kickstart, health 200, 2026-07-24).
 
 ## Next
-1. Issue #13: commit + PR with "Closes #13" (push needs user approval); after merge, `launchctl kickstart -k gui/$(id -u)/com.dayos.web`.
-2. Issues #11 (Tailscale phone access), #9 (Settings view).
+1. Issues #11 (Tailscale phone access), #9 (Settings view).
 
 ## Constraints
 No Co-Authored-By lines in commits. GitHub issues are canonical — no markdown punchlists mirroring them. User commits/merges; put "Closes #N" in PR bodies.
@@ -24,6 +23,7 @@ Task dict shape: `{"text","done","tag","carried"}` via _norm_task (models.py:163
 Kit source: ~/cc-config/kit; CLAUDE.md kit zones must stay byte-identical (upgrade = block swap).
 
 ## Done
+Issue #13 fix (design 2: fold carry into load_plan) — RESULT: committed 7e53ac7; backends raise KeyError on missing day, storage.load_plan delegates to init_or_load_plan; 151 passed (+3 new tests incl. web-mutation carry); e2e curl on :8001 sqlite scratch showed carried:true. Merged via PR #16 (8869d0a), deployed via kickstart, live /health 200 (2026-07-24).
 cc-config onboarding — RESULT: kit v1.0 installed (M8 9/9 checks green), 5 skills authored + 3-pass reviewed (34 fixes applied), committed 8361f19 + e90906a; 146 tests pass.
 Scheduler reminder fix (#14) — RESULT: reproduced KeyError 'task' at scheduler.py:60, TDD red→green, suite 148 passed, deployed via kickstart (health=200).
 Autoinit fix (#15) — RESULT: installed plist + scripts template repointed at .venv/bin/day; exit 78 → 0; log wrote "Created: 2026-07-09 (6:30 AM wake)".
