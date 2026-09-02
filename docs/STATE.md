@@ -23,6 +23,7 @@ Task dict shape: `{"text","done","tag","carried"}` via _norm_task (models.py:163
 Kit source: ~/cc-config/kit; CLAUDE.md kit zones must stay byte-identical (upgrade = block swap).
 
 ## Done
+Habit module v1 MVP (evening stack) — RESULT: committed 0be3e04 (models/cli/display/api + tag="seed" carry-exclusion, 6 new tests) then e5d1739 (web dashboard _area_stack.html, 2 new tests); 159 passed. Reviewed via mattpocock-skills:code-review two-axis (Standards: 1 hard violation — RS5 sweep missed day.html include chain — found and fixed same session; Spec: 0 findings, re-scope independently verified sound). v1.1 (one-tap ntfy advance, never-miss-twice alarm) remains — see docs/superpowers/plans/2026-09-01-habit-module-v1.md Tasks 3-4.
 Issue #13 fix (design 2: fold carry into load_plan) — RESULT: committed 7e53ac7; backends raise KeyError on missing day, storage.load_plan delegates to init_or_load_plan; 151 passed (+3 new tests incl. web-mutation carry); e2e curl on :8001 sqlite scratch showed carried:true. Merged via PR #16 (8869d0a), deployed via kickstart, live /health 200 (2026-07-24).
 cc-config onboarding — RESULT: kit v1.0 installed (M8 9/9 checks green), 5 skills authored + 3-pass reviewed (34 fixes applied), committed 8361f19 + e90906a; 146 tests pass.
 Scheduler reminder fix (#14) — RESULT: reproduced KeyError 'task' at scheduler.py:60, TDD red→green, suite 148 passed, deployed via kickstart (health=200).
