@@ -4,7 +4,7 @@ from dayctl.models import (
     DayPlan, NON_NEGOTIABLE_KEYS, SCHEDULE_PROFILES,
     profile_for_date, score_plan, wake_time, week_dates,
     compute_streak, incomplete_tasks, carry_forward,
-    HABIT_TEMPLATE, HABIT_KEYS, AREAS,
+    HABIT_TEMPLATE, HABIT_KEYS, AREAS, DEFAULT_TASKS,
 )
 
 
@@ -13,7 +13,7 @@ from dayctl.models import (
 # ---------------------------------------------------------------------------
 
 def test_areas_and_new_seeding():
-    assert AREAS == ["music", "youtube", "marketing", "social", "code"]
+    assert AREAS == ["music", "youtube", "marketing", "social", "code", "stack"]
     plan = DayPlan.new("2026-05-24")
     assert set(plan.tasks) == set(AREAS)
     assert all({"text", "done", "tag", "carried"} <= set(t) for t in plan.tasks["music"])
@@ -313,6 +313,40 @@ def test_from_dict_backfills_scalar_fields():
     legacy.pop("mood"); legacy.pop("bpm"); legacy.pop("flow_minutes")
     plan = DayPlan.from_dict(legacy)
     assert plan.mood == "" and plan.bpm == "" and plan.flow_minutes == 0
+
+
+# ---------------------------------------------------------------------------
+# Habit module v1: evening stack
+# ---------------------------------------------------------------------------
+
+def test_stack_area_seeded_with_seven_seed_tagged_items():
+    plan = DayPlan.new("2026-09-01")
+    assert "stack" in AREAS
+    assert len(plan.tasks["stack"]) == len(DEFAULT_TASKS["stack"]) == 7
+    assert all(t["tag"] == "seed" for t in plan.tasks["stack"])
+    assert all(t["done"] is False for t in plan.tasks["stack"])
+
+
+def test_carry_forward_excludes_seed_tagged_stale_wording():
+    # A stack item left incomplete under OLD wording (tag="seed") must not carry
+    # into today, even though its text no longer matches today's freshly-seeded
+    # stack text — carrying it would duplicate the routine once its wording changes.
+    yesterday = DayPlan.new("2026-08-31")
+    yesterday.tasks["stack"] = [
+        {"text": "OLD WORDING: open DAW", "done": False, "tag": "seed", "carried": False},
+    ]
+    today = DayPlan.new("2026-09-01")  # fresh seed, current wording
+    carried = carry_forward(today, yesterday)
+    assert carried == []
+    assert all(t["text"] != "OLD WORDING: open DAW" for t in today.tasks["stack"])
+
+
+def test_stack_area_roundtrips_through_dict():
+    plan = DayPlan.new("2026-09-01")
+    plan.tasks["stack"][0]["done"] = True
+    restored = DayPlan.from_dict(plan.to_dict())
+    assert restored.tasks["stack"] == plan.tasks["stack"]
+    assert restored.tasks["stack"][0]["done"] is True
 
 
 # ---------------------------------------------------------------------------

@@ -465,14 +465,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     # task
     p_task = sub.add_parser("task", help="Manage music/code tasks.")
-    p_task.add_argument("category", choices=["music", "code", "app"], help="Task area (app = code alias)")
+    p_task.add_argument("category", choices=["music", "code", "app", "stack"], help="Task area (app = code alias)")
     p_task.add_argument("action_or_index", help="'add' or task number (1-based)")
     p_task.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
     p_task.add_argument("--date", help=DATE_HELP)
     p_task.set_defaults(func=cmd_task)
 
-    # music / code shortcuts (dayctl music add "Mix verse", dayctl code 2 done)
-    for category in ("music", "code"):
+    # music / code / stack shortcuts (dayctl music add "Mix verse", dayctl stack 1 done)
+    for category in ("music", "code", "stack"):
         p = sub.add_parser(category, help=f"Manage {category} tasks.")
         p.add_argument("action_or_index", help="'add' or task number (1-based)")
         p.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")

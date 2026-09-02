@@ -37,3 +37,16 @@ Autoinit fix (#15) — RESULT: installed plist + scripts template repointed at .
 
 ## Failed attempts
 (none this session)
+
+## Plan changes
+PLAN CHANGE (2026-09-01): assumed carry-forward was broken (plan Task 1, from
+docs/superpowers/plans/2026-09-01-habit-module-v1.md); actually reproduction via
+init_or_load_plan shows real custom tasks DO carry (evidence: REAL task carried=True
+across 2026-09-01→09-02), and placeholder-only days already produce carried=[] via
+existing text-dedup (models.py:330) with or without a seed tag. Live ~/.dayctl/days/
+2026-08-28..09-01 show 5 straight untouched-placeholder days (carried:false) — the
+"doesn't carry forward" report is explained by no real task ever having been logged,
+not a code defect. Revised: skip the standalone "fix" framing; fold tag="seed" into
+Task 2 (stack area) instead, where it has real value — protecting the stack's forward
+carry once its wording changes (user: "I will add more later"). Verified stack-area
+carry needs AREAS to include "stack" first, so Task 1+2 are now one unit.

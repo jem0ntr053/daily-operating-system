@@ -50,6 +50,13 @@ def test_toggle_app_task(client):
     assert r.json()["tasks"]["code"][0]["done"] is True
 
 
+def test_toggle_stack_task(client):
+    client.get("/api/days/2026-04-12", headers=AUTH)  # create
+    r = client.post("/api/days/2026-04-12/tasks/stack/0/toggle", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["tasks"]["stack"][0]["done"] is True
+
+
 def test_add_app_task(client):
     r = client.post(
         "/api/days/2026-04-12/tasks/app",

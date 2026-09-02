@@ -12,7 +12,7 @@ from dayctl.storage import delete_plan, list_days, load_plan, save_plan
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
-Category = Literal["app", "music", "code", "youtube", "marketing", "social"]
+Category = Literal["app", "music", "code", "youtube", "marketing", "social", "stack"]
 
 _AREA_ALIAS = {"app": "code"}
 
