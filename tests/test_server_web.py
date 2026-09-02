@@ -47,6 +47,23 @@ def test_login_cookie_is_persistent(client):
     assert "max-age=" in set_cookie
 
 
+def test_day_page_renders_stack_card(client):
+    r = client.get("/day/2026-04-12")
+    assert r.status_code == 200
+    assert b"tasklist-stack" in r.content
+
+
+def test_stack_toggle_via_web(client):
+    client.get("/day/2026-04-12")
+    r = client.post(
+        "/web/day/2026-04-12/tasks/stack/0/toggle",
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    content = r.content.lower()
+    assert b"checked" in content or b"done" in content
+
+
 def test_toggle_returns_updated_fragment(client):
     client.get("/day/2026-04-12")
     r = client.post(
