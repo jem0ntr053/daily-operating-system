@@ -40,6 +40,20 @@ Autoinit fix (#15) — RESULT: installed plist + scripts template repointed at .
 (none this session)
 
 ## Plan changes
+PLAN CHANGE (2026-09-03): plan Task 4 Step 5's literal code calls
+load_plan(d1), load_plan(d2) unconditionally for the two prior days. Reproduced
+(see below): load_plan() on a never-visited date silently creates+saves a day
+file via init_or_load_plan's else-branch, with a fresh all-incomplete stack.
+Consequence: on first run after adoption (or after any gap where a day was
+never `day init`-ed), this would fabricate 2 backfill day files polluting
+history/streak/week, AND missed_twice would trivially be True (fresh stack =
+incomplete) -> a false "don't miss twice" alarm on day one, not an earned one.
+Evidence: HOME=<scratch> load_plan("2026-08-30") on a fresh store -> exists()
+False before, True after, stack all-incomplete. Revised: _maybe_miss_alarm
+checks storage.exists(d1) and exists(d2) BEFORE loading; either missing ->
+skip silently (can't judge a day that was never tracked), no fabrication, no
+false alarm. Still sets _alarm_date to avoid re-checking existence every tick.
+
 PLAN CHANGE (2026-09-01): assumed carry-forward was broken (plan Task 1, from
 docs/superpowers/plans/2026-09-01-habit-module-v1.md); actually reproduction via
 init_or_load_plan shows real custom tasks DO carry (evidence: REAL task carried=True

@@ -178,6 +178,102 @@ def test_tick_no_action_when_public_url_unset(monkeypatch):
     assert posted[0]["actions"] is None
 
 
+def test_miss_alarm_fires_when_both_prior_days_missed(day_env, monkeypatch):
+    from datetime import date
+    from dayctl.models import DayPlan
+    from dayctl.storage import save_plan
+    from dayctl.server.scheduler import ReminderScheduler
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    save_plan(DayPlan.new("2026-08-30"))  # incomplete stack
+    save_plan(DayPlan.new("2026-08-31"))  # incomplete stack
+
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))
+    assert len(posted) == 1
+    assert posted[0][3] == "high"
+
+
+def test_miss_alarm_silent_when_either_day_complete(day_env, monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.storage import save_plan
+    from dayctl.server.scheduler import ReminderScheduler
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    p1 = DayPlan.new("2026-08-30")
+    for t in p1.tasks["stack"]:
+        t["done"] = True
+    save_plan(p1)
+    save_plan(DayPlan.new("2026-08-31"))  # incomplete
+
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))
+    assert posted == []
+
+
+def test_miss_alarm_silent_when_prior_day_never_existed(day_env, monkeypatch):
+    # Neither 2026-08-30 nor 2026-08-31 was ever created — must not fabricate
+    # them, and must not fire (can't judge a day that was never tracked).
+    from dayctl.server.scheduler import ReminderScheduler
+    from dayctl.storage import exists
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))
+    assert posted == []
+    assert exists("2026-08-30") is False
+    assert exists("2026-08-31") is False
+
+
+def test_miss_alarm_fires_at_most_once_per_day(day_env, monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.storage import save_plan
+    from dayctl.server.scheduler import ReminderScheduler
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    save_plan(DayPlan.new("2026-08-30"))
+    save_plan(DayPlan.new("2026-08-31"))
+
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 5, 0))  # same day, later tick
+    assert len(posted) == 1
+
+
+def test_miss_alarm_noop_without_topic(day_env, monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.storage import save_plan
+    from dayctl.server.scheduler import ReminderScheduler
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    save_plan(DayPlan.new("2026-08-30"))
+    save_plan(DayPlan.new("2026-08-31"))
+
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))
+    assert posted == []
+
+
 def test_tick_noop_when_no_topic(monkeypatch):
     from datetime import datetime
     from dayctl.server.scheduler import tick_once

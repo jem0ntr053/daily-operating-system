@@ -290,6 +290,17 @@ def score_plan(plan: DayPlan) -> int:
     return sum(1 for key in NON_NEGOTIABLE_KEYS if plan.completed.get(key, False))
 
 
+def stack_complete(plan: DayPlan) -> bool:
+    """True iff every evening-stack item is done (empty stack counts as incomplete)."""
+    items = plan.tasks.get("stack", [])
+    return bool(items) and all(t["done"] for t in items)
+
+
+def missed_twice(prev: DayPlan, prev2: DayPlan) -> bool:
+    """True iff the stack was left incomplete on both of the two prior days."""
+    return not stack_complete(prev) and not stack_complete(prev2)
+
+
 def wake_time(plan: DayPlan) -> str:
     """Extract the wake time from the first schedule entry."""
     if plan.schedule:

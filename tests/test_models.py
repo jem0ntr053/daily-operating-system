@@ -5,6 +5,7 @@ from dayctl.models import (
     profile_for_date, score_plan, wake_time, week_dates,
     compute_streak, incomplete_tasks, carry_forward,
     HABIT_TEMPLATE, HABIT_KEYS, AREAS, DEFAULT_TASKS,
+    stack_complete, missed_twice,
 )
 
 
@@ -339,6 +340,32 @@ def test_carry_forward_excludes_seed_tagged_stale_wording():
     carried = carry_forward(today, yesterday)
     assert carried == []
     assert all(t["text"] != "OLD WORDING: open DAW" for t in today.tasks["stack"])
+
+
+def test_stack_complete_false_when_any_pending():
+    plan = DayPlan.new("2026-09-01")
+    assert stack_complete(plan) is False
+
+
+def test_stack_complete_true_when_all_done():
+    plan = DayPlan.new("2026-09-01")
+    for t in plan.tasks["stack"]:
+        t["done"] = True
+    assert stack_complete(plan) is True
+
+
+def test_missed_twice_true_when_both_prior_days_incomplete():
+    a = DayPlan.new("2026-08-30")
+    b = DayPlan.new("2026-08-31")
+    assert missed_twice(b, a) is True
+
+
+def test_missed_twice_false_when_either_day_complete():
+    a = DayPlan.new("2026-08-30")
+    b = DayPlan.new("2026-08-31")
+    for t in b.tasks["stack"]:
+        t["done"] = True
+    assert missed_twice(b, a) is False
 
 
 def test_stack_area_roundtrips_through_dict():
