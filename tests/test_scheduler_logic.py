@@ -130,6 +130,34 @@ def test_stack_action_builds_advance_url_when_configured(monkeypatch):
     assert "headers.Authorization=Bearer tok" in action
 
 
+def test_stack_action_warns_when_ntfy_auth_unset(monkeypatch, caplog):
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import _stack_action
+
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    monkeypatch.delenv("NTFY_AUTH", raising=False)
+    plan = DayPlan.new("2026-04-12")
+    with caplog.at_level("WARNING"):
+        action = _stack_action(plan, "2026-04-12")
+    assert action is not None
+    assert any("NTFY_AUTH" in r.message for r in caplog.records)
+
+
+def test_stack_action_silent_when_ntfy_auth_set(monkeypatch, caplog):
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import _stack_action
+
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    monkeypatch.setenv("NTFY_AUTH", "ntfy-secret")
+    plan = DayPlan.new("2026-04-12")
+    with caplog.at_level("WARNING"):
+        action = _stack_action(plan, "2026-04-12")
+    assert action is not None
+    assert not any("NTFY_AUTH" in r.message for r in caplog.records)
+
+
 def test_tick_includes_advance_action_when_public_url_set(monkeypatch):
     from datetime import datetime
     from dayctl.models import DayPlan

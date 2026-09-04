@@ -70,6 +70,12 @@ def _stack_action(plan: Optional[DayPlan], day: str) -> Optional[str]:
         return None
     if not any(not t["done"] for t in plan.tasks.get("stack", [])):
         return None
+    if not os.environ.get("NTFY_AUTH", "").strip():
+        log.warning(
+            "DAYCTL_PUBLIC_URL is set but NTFY_AUTH is not — the advance action "
+            "embeds DAYCTL_TOKEN in the ntfy push; set NTFY_AUTH so the topic "
+            "itself is private, or anyone who can read it gets your token."
+        )
     url = f"{base}/api/days/{day}/tasks/stack/advance"
     return f"http, Done ✓, {url}, method=POST, headers.Authorization=Bearer {token}, clear=true"
 
