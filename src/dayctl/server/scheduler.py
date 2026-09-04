@@ -15,7 +15,7 @@ from dayctl.storage import load_plan
 
 log = logging.getLogger(__name__)
 
-Poster = Callable[[str, str, str, str], None]
+Poster = Callable[..., None]
 
 
 def _in_quiet_window(now: datetime) -> bool:
@@ -61,6 +61,19 @@ def _body_for(plan: Optional[DayPlan]) -> str:
     return "\n".join(lines)
 
 
+def _stack_action(plan: Optional[DayPlan], day: str) -> Optional[str]:
+    """ntfy http-action that advances the next incomplete stack step. LAN-only.
+    Returns None unless DAYCTL_PUBLIC_URL is set and a pending stack item exists."""
+    base = os.environ.get("DAYCTL_PUBLIC_URL", "").strip().rstrip("/")
+    token = os.environ.get("DAYCTL_TOKEN", "").strip()
+    if not base or not token or plan is None:
+        return None
+    if not any(not t["done"] for t in plan.tasks.get("stack", [])):
+        return None
+    url = f"{base}/api/days/{day}/tasks/stack/advance"
+    return f"http, Done ✓, {url}, method=POST, headers.Authorization=Bearer {token}, clear=true"
+
+
 def tick_once(
     profile: dict,
     now: datetime,
@@ -72,9 +85,10 @@ def tick_once(
     if not topic:
         return
     fires = should_fire_now(profile, now, last_tick)
+    action = _stack_action(plan, now.date().isoformat())
     for _, label in fires:
         try:
-            poster(topic, label, _body_for(plan), "default")
+            poster(topic, label, _body_for(plan), "default", action)
         except Exception as e:
             log.warning("poster failed: %s", e)
 

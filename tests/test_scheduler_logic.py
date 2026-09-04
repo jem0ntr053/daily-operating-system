@@ -50,7 +50,7 @@ def test_tick_calls_poster_for_fires(monkeypatch):
     monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
     posted: list[dict] = []
 
-    def fake_post(topic, title, body, priority):
+    def fake_post(topic, title, body, priority, actions=None):
         posted.append({"topic": topic, "title": title, "body": body})
 
     now = datetime(2026, 4, 12, 7, 0, 30)
@@ -79,7 +79,7 @@ def test_tick_posts_body_with_pending_tasks(monkeypatch):
     monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
     posted: list[dict] = []
 
-    def fake_post(topic, title, body, priority):
+    def fake_post(topic, title, body, priority, actions=None):
         posted.append({"topic": topic, "title": title, "body": body})
 
     plan = DayPlan.new("2026-04-12")
@@ -93,6 +93,89 @@ def test_tick_posts_body_with_pending_tasks(monkeypatch):
     )
     assert len(posted) == 1
     assert "Ship login" in posted[0]["body"]
+
+
+def test_stack_action_none_without_public_url(monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import _stack_action
+
+    monkeypatch.delenv("DAYCTL_PUBLIC_URL", raising=False)
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    plan = DayPlan.new("2026-04-12")
+    assert _stack_action(plan, "2026-04-12") is None
+
+
+def test_stack_action_none_when_stack_all_done(monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import _stack_action
+
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    plan = DayPlan.new("2026-04-12")
+    for t in plan.tasks["stack"]:
+        t["done"] = True
+    assert _stack_action(plan, "2026-04-12") is None
+
+
+def test_stack_action_builds_advance_url_when_configured(monkeypatch):
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import _stack_action
+
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    plan = DayPlan.new("2026-04-12")
+    action = _stack_action(plan, "2026-04-12")
+    assert action is not None
+    assert "http://192.168.1.50:8000/api/days/2026-04-12/tasks/stack/advance" in action
+    assert "headers.Authorization=Bearer tok" in action
+
+
+def test_tick_includes_advance_action_when_public_url_set(monkeypatch):
+    from datetime import datetime
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import tick_once
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    posted: list[dict] = []
+
+    def fake_post(topic, title, body, priority, actions=None):
+        posted.append({"actions": actions})
+
+    plan = DayPlan.new("2026-04-12")
+    tick_once(
+        profile={"schedule": ["7:00 AM  App Work"]},
+        now=datetime(2026, 4, 12, 7, 0, 30),
+        last_tick=datetime(2026, 4, 12, 6, 59, 0),
+        poster=fake_post,
+        plan=plan,
+    )
+    assert posted[0]["actions"] is not None
+    assert "tasks/stack/advance" in posted[0]["actions"]
+
+
+def test_tick_no_action_when_public_url_unset(monkeypatch):
+    from datetime import datetime
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import tick_once
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    monkeypatch.delenv("DAYCTL_PUBLIC_URL", raising=False)
+    posted: list[dict] = []
+
+    def fake_post(topic, title, body, priority, actions=None):
+        posted.append({"actions": actions})
+
+    plan = DayPlan.new("2026-04-12")
+    tick_once(
+        profile={"schedule": ["7:00 AM  App Work"]},
+        now=datetime(2026, 4, 12, 7, 0, 30),
+        last_tick=datetime(2026, 4, 12, 6, 59, 0),
+        poster=fake_post,
+        plan=plan,
+    )
+    assert posted[0]["actions"] is None
 
 
 def test_tick_noop_when_no_topic(monkeypatch):
