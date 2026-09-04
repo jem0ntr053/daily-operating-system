@@ -91,6 +91,8 @@ def tick_once(
     if not topic:
         return
     fires = should_fire_now(profile, now, last_tick)
+    if not fires:
+        return
     action = _stack_action(plan, now.date().isoformat())
     for _, label in fires:
         try:
@@ -136,9 +138,16 @@ class ReminderScheduler:
             return
         d1 = (now.date() - timedelta(days=1)).isoformat()
         d2 = (now.date() - timedelta(days=2)).isoformat()
-        if exists(d1) and exists(d2) and missed_twice(load_plan(d1), load_plan(d2)):
+        if exists(d1) and exists(d2):
             try:
-                post_ntfy(topic, "Don't miss twice", "Stack missed 2 days. Do one tiny step tonight.", "high")
+                prev, prev2 = load_plan(d1), load_plan(d2)
             except Exception as e:
-                log.warning("miss alarm failed: %s", e)
+                log.warning("miss alarm: could not load prior days: %s", e)
+                self._alarm_date = today
+                return
+            if missed_twice(prev, prev2):
+                try:
+                    post_ntfy(topic, "Don't miss twice", "Stack missed 2 days. Do one tiny step tonight.", "high")
+                except Exception as e:
+                    log.warning("miss alarm failed: %s", e)
         self._alarm_date = today

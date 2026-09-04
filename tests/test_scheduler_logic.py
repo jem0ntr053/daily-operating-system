@@ -158,6 +158,30 @@ def test_stack_action_silent_when_ntfy_auth_set(monkeypatch, caplog):
     assert not any("NTFY_AUTH" in r.message for r in caplog.records)
 
 
+def test_no_ntfy_auth_warning_on_tick_with_no_fires(monkeypatch, caplog):
+    # _stack_action (and its NTFY_AUTH warning) must only run when a nudge is
+    # actually about to post — not on every 1-minute tick regardless of fires.
+    from datetime import datetime
+    from dayctl.models import DayPlan
+    from dayctl.server.scheduler import tick_once
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    monkeypatch.setenv("DAYCTL_PUBLIC_URL", "http://192.168.1.50:8000")
+    monkeypatch.setenv("DAYCTL_TOKEN", "tok")
+    monkeypatch.delenv("NTFY_AUTH", raising=False)
+    plan = DayPlan.new("2026-04-12")
+
+    with caplog.at_level("WARNING"):
+        tick_once(
+            profile={"schedule": ["7:00 AM  App Work"]},  # no block in this window
+            now=datetime(2026, 4, 12, 7, 30, 0),
+            last_tick=datetime(2026, 4, 12, 7, 15, 0),
+            poster=lambda *a, **kw: None,
+            plan=plan,
+        )
+    assert not any("NTFY_AUTH" in r.message for r in caplog.records)
+
+
 def test_tick_includes_advance_action_when_public_url_set(monkeypatch):
     from datetime import datetime
     from dayctl.models import DayPlan
@@ -263,6 +287,28 @@ def test_miss_alarm_silent_when_prior_day_never_existed(day_env, monkeypatch):
     assert posted == []
     assert exists("2026-08-30") is False
     assert exists("2026-08-31") is False
+
+
+def test_miss_alarm_survives_corrupt_prior_day_file(day_env, monkeypatch):
+    # A day file that exists (passes exists()) but is unreadable/corrupt must
+    # not crash _run's calling loop — matches _run's own try/except pattern
+    # for the identical load_plan(today) call.
+    from dayctl.models import DayPlan
+    from dayctl.storage import save_plan
+    from dayctl.server.scheduler import ReminderScheduler
+    import dayctl.server.scheduler as scheduler_mod
+
+    monkeypatch.setenv("NTFY_TOPIC", "https://ntfy.sh/test")
+    save_plan(DayPlan.new("2026-08-30"))
+    corrupt_path = day_env / "days" / "2026-08-31.json"
+    corrupt_path.write_text("{not valid json", encoding="utf-8")
+
+    posted = []
+    monkeypatch.setattr(scheduler_mod, "post_ntfy", lambda *a, **kw: posted.append(a))
+
+    s = ReminderScheduler()
+    s._maybe_miss_alarm(datetime(2026, 9, 1, 7, 0, 0))  # must not raise
+    assert posted == []
 
 
 def test_miss_alarm_fires_at_most_once_per_day(day_env, monkeypatch):
