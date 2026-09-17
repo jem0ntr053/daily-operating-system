@@ -1,0 +1,33 @@
+{
+  "planPath": "docs/superpowers/plans/2026-09-01-habit-module-v1.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 1: Fix carry-forward (seed tagging + exclusion)",
+      "status": "completed",
+      "description": "RE-SCOPED (docs/STATE.md Plan changes, 2026-09-01): reproduction disproved the premise — real tasks already carry correctly (test_carry_forward_adds_pending, pre-existing). Folded tag=\"seed\" into Task 1 (id 1) instead, where it protects the stack once its wording changes. No standalone commit; delivered as part of commit 0be3e04.\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"\", \"acceptanceCriteria\": []}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 2: Add the stack area and seed the evening stack",
+      "status": "completed",
+      "blockedBy": [0],
+      "description": "**Goal:** Evening stack appears daily in day show / web / ntfy, checkable via day stack N done + API.\n\nDONE: commit 0be3e04 (models/cli/display/api + tests, 6 new tests) + commit e5d1739 (web dashboard _area_stack.html — code-review Standards axis caught day.html's include chain missing the RS5 sweep; backend routes were already generic). Reviewed via mattpocock-skills:code-review (Standards: 1 hard violation found and fixed; Spec: 0 findings, re-scope verified sound).\n\n**Verify:** .venv/bin/python -m pytest tests/ -q -> 159 passed\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"src/dayctl/display.py\", \"src/dayctl/cli.py\", \"src/dayctl/server/api.py\", \"src/dayctl/server/templates/_area_stack.html\", \"src/dayctl/server/templates/day.html\"], \"verifyCommand\": \".venv/bin/python -m pytest tests/ -q\", \"acceptanceCriteria\": [\"stack area seeded with 7 tag=seed items - DONE\", \"from_dict round-trips stack - DONE\", \"day stack 1 done works - DONE\", \"day show renders STACK - DONE\", \"API accepts stack area - DONE\", \"web dashboard renders+toggles stack - DONE (code-review fix)\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 3 (v1.1): One-tap done from the phone",
+      "status": "completed",
+      "blockedBy": [1],
+      "description": "DONE: commit 7472a6f (advance route, post_ntfy actions, _stack_action, RS5 fake_post sweep, 9 new tests) + d39a1a3 (NTFY_AUTH exposure warning, added after user request) + 5c14eab (review fix: warning gated to only fire when a nudge actually posts, not every tick). Reviewed via mattpocock-skills:code-review two-axis alongside Task 4 (range e1d0998..HEAD): Standards found 1 real gap (fixed in 5c14eab), Spec found 1 real gap (fixed in same commit), both re-scopes judged sound.\n\n**Verify:** .venv/bin/python -m pytest tests/ -q -> 181 passed\n\n```json:metadata\n{\"files\": [\"src/dayctl/server/api.py\", \"src/dayctl/server/ntfy.py\", \"src/dayctl/server/scheduler.py\", \"tests/test_server_api.py\", \"tests/test_ntfy.py\", \"tests/test_scheduler_logic.py\"], \"verifyCommand\": \".venv/bin/python -m pytest tests/ -q\", \"acceptanceCriteria\": [\"advance marks first incomplete stack task, null when none - DONE\", \"post_ntfy sets Actions only when provided - DONE\", \"action attached only when DAYCTL_PUBLIC_URL set and pending items exist - DONE\", \"NTFY_AUTH exposure warning, gated to actual-fire only - DONE (user-requested + review fix)\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 4 (v1.1): Never-miss-twice alarm",
+      "status": "completed",
+      "blockedBy": [1],
+      "description": "DONE: commit 5907a5a (stack_complete/missed_twice, _maybe_miss_alarm, 9 new tests) + 5c14eab (review fix: try/except around load_plan(d1)/load_plan(d2) for the corrupt-file case, matching _run's existing pattern). RE-SCOPED from the plan's literal Step 5 (docs/STATE.md Plan changes, 2026-09-03): added an exists() guard before loading either prior day, since load_plan() alone would silently fabricate+save day files for never-visited dates and false-fire on adoption day - proven via reproduction.\n\n**Verify:** .venv/bin/python -m pytest tests/ -q -> 181 passed\n\n```json:metadata\n{\"files\": [\"src/dayctl/models.py\", \"src/dayctl/server/scheduler.py\", \"tests/test_models.py\", \"tests/test_scheduler_logic.py\"], \"verifyCommand\": \".venv/bin/python -m pytest tests/ -q\", \"acceptanceCriteria\": [\"stack_complete true iff all stack items done - DONE\", \"missed_twice true iff both prior days incomplete - DONE\", \"alarm fires at most once per day - DONE\", \"never fabricates a day file just to judge it - DONE (re-scope)\", \"survives a corrupt prior day file - DONE (review fix)\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-09-01"
+}

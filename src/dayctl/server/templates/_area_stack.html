@@ -1,0 +1,7 @@
+<div class="area-card" style="--accent:#facc15">
+  <div class="area-head"><div class="area-title"><span class="swatch"></span>Evening Stack</div><div class="area-tag">HABIT CHAIN</div></div>
+  <div class="area-stats">
+    <div class="stat"><div class="v accent">{{ plan.tasks.get('stack', []) | selectattr('done') | list | length }}<span class="small"> / {{ plan.tasks.get('stack', []) | length }}</span></div><div class="l">steps done</div></div>
+  </div>
+  {% set area = "stack" %}{% include "_task_list.html" %}
+</div>

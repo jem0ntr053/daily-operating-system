@@ -38,8 +38,12 @@ def plan_path(day_str: str) -> Path:
 
 
 def load_plan(day_str: str | None = None) -> DayPlan:
+    # Single materialization choke point (#13): every load routes through
+    # init_or_load_plan so a day is never created without a carry-forward
+    # attempt. Backends no longer auto-create; missing days raise KeyError.
     ds = day_str or today_str()
-    return _backend().load_plan(ds)
+    plan, _ = init_or_load_plan(ds)
+    return plan
 
 
 def save_plan(plan: DayPlan) -> None:

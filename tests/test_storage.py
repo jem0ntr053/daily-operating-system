@@ -20,6 +20,17 @@ def test_load_auto_creates(day_env):
     assert path.exists()
 
 
+def test_load_plan_attempts_carry_forward(day_env):
+    # #13: bare load_plan is now a materialization choke point — creating a
+    # missing day through it must attempt carry-forward, same as init.
+    y = DayPlan.new("2026-06-14")
+    y.tasks["social"] = [{"text": "carry via load", "done": False, "tag": "", "carried": False}]
+    save_plan(y)
+    plan = load_plan("2026-06-15")
+    assert any(t["text"] == "carry via load" and t["carried"] for t in plan.tasks["social"])
+    assert plan.rolled_over is True
+
+
 def test_list_days(day_env):
     save_plan(DayPlan.new("2026-01-03"))
     save_plan(DayPlan.new("2026-01-01"))

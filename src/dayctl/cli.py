@@ -314,6 +314,10 @@ def cmd_streak(args: argparse.Namespace) -> None:
 
 def push_day(day_str, local, remote) -> None:
     """Copy a day from local backend to remote backend."""
+    # Backends no longer auto-create (#13); pushing a nonexistent day used to
+    # silently materialize an empty local day first.
+    if not local.exists(day_str):
+        raise SystemExit(f"No local day {day_str} to push")
     plan = local.load_plan(day_str)
     remote.save_plan(plan)
 
@@ -461,14 +465,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     # task
     p_task = sub.add_parser("task", help="Manage music/code tasks.")
-    p_task.add_argument("category", choices=["music", "code", "app"], help="Task area (app = code alias)")
+    p_task.add_argument("category", choices=["music", "code", "app", "stack"], help="Task area (app = code alias)")
     p_task.add_argument("action_or_index", help="'add' or task number (1-based)")
     p_task.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")
     p_task.add_argument("--date", help=DATE_HELP)
     p_task.set_defaults(func=cmd_task)
 
-    # music / code shortcuts (dayctl music add "Mix verse", dayctl code 2 done)
-    for category in ("music", "code"):
+    # music / code / stack shortcuts (dayctl music add "Mix verse", dayctl stack 1 done)
+    for category in ("music", "code", "stack"):
         p = sub.add_parser(category, help=f"Manage {category} tasks.")
         p.add_argument("action_or_index", help="'add' or task number (1-based)")
         p.add_argument("value", nargs="?", default=None, help="Task text (for add) or done/undo")

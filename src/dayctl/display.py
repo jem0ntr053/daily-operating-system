@@ -196,6 +196,13 @@ def print_plan(plan: DayPlan, theme: dict[str, str] | None = None) -> None:
     # === Divider ===
     lines.append(_box_div(t))
 
+    # === Stack (evening routine chain) ===
+    lines.append(_box_row(t, _c(t["heading"], "STACK")))
+    for idx, item in enumerate(plan.tasks.get("stack", []), start=1):
+        mark = _render_check(t, bool(item["done"]))
+        lines.append(_box_row(t, f"  {idx}. {mark} {item['text']}"))
+    lines.append(_box_div(t))
+
     # === Code Tasks ===
     lines.append(_box_row(t, _c(t["heading"], "CODE TASKS")))
     for idx, item in enumerate(plan.tasks.get("code", []), start=1):

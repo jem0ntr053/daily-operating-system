@@ -155,9 +155,18 @@ DEFAULT_TASKS = {
         "Define today's highest-value music task",
         "Complete one meaningful step",
     ],
+    "stack": [
+        "Laptop off -> gym clothes on (no browsing)",
+        "Water bottle -> head to gym",
+        "Post-gym: shower + snack (protein+carb, 15m)",
+        "Sit 5 min, let energy settle",
+        "Open DAW, load current project",
+        "20-30 min on ONE task (mix/edit/layer)",
+        "Export date-stamped, close DAW",
+    ],
 }
 
-AREAS = ["music", "youtube", "marketing", "social", "code"]
+AREAS = ["music", "youtube", "marketing", "social", "code", "stack"]
 
 
 def _norm_task(t: dict) -> dict:
@@ -235,6 +244,7 @@ class DayPlan:
                 "marketing": [],
                 "social": [],
                 "code": [_norm_task({"text": t}) for t in DEFAULT_TASKS["code"]],
+                "stack": [_norm_task({"text": t, "tag": "seed"}) for t in DEFAULT_TASKS["stack"]],
             },
         )
 
@@ -280,6 +290,17 @@ def score_plan(plan: DayPlan) -> int:
     return sum(1 for key in NON_NEGOTIABLE_KEYS if plan.completed.get(key, False))
 
 
+def stack_complete(plan: DayPlan) -> bool:
+    """True iff every evening-stack item is done (empty stack counts as incomplete)."""
+    items = plan.tasks.get("stack", [])
+    return bool(items) and all(t["done"] for t in items)
+
+
+def missed_twice(prev: DayPlan, prev2: DayPlan) -> bool:
+    """True iff the stack was left incomplete on both of the two prior days."""
+    return not stack_complete(prev) and not stack_complete(prev2)
+
+
 def wake_time(plan: DayPlan) -> str:
     """Extract the wake time from the first schedule entry."""
     if plan.schedule:
@@ -322,11 +343,18 @@ def incomplete_tasks(plan: DayPlan) -> dict[str, list[dict]]:
 
 
 def carry_forward(plan: DayPlan, previous: DayPlan) -> list[str]:
-    """Carry incomplete tasks from previous day into plan. Returns list of carried descriptions."""
+    """Carry incomplete tasks from previous day into plan. Returns list of carried descriptions.
+
+    Seed tasks (tag == "seed") are daily-template items (e.g. the evening stack) that
+    DayPlan.new re-seeds fresh every day; they never carry, so stale wording from a
+    template edit can't leak forward and duplicate the current day's seed.
+    """
     carried: list[str] = []
     for area, tasks in incomplete_tasks(previous).items():
         existing = {t["text"] for t in plan.tasks.get(area, [])}
         for t in tasks:
+            if t.get("tag") == "seed":
+                continue
             if t["text"] in existing:
                 continue
             plan.tasks.setdefault(area, []).append({**_norm_task(t), "carried": True})

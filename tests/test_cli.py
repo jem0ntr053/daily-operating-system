@@ -49,6 +49,13 @@ def test_init_and_show(day_env, monkeypatch):
     assert "Tuesday, Mar 17" in out
 
 
+def test_show_renders_stack_section(day_env, monkeypatch):
+    _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
+    out = _run(day_env, ["show", "--date", "2026-03-17"], monkeypatch)
+    assert "STACK" in out
+    assert "Laptop off" in out
+
+
 def test_init_with_profile_override(day_env, monkeypatch):
     # 2026-03-21 is Saturday, default would be saturday_no_show
     out = _run(day_env, ["init", "--date", "2026-03-21", "--profile", "saturday_show"], monkeypatch)
@@ -180,6 +187,14 @@ def test_music_shortcut(day_env, monkeypatch):
     _run(day_env, ["music", "1", "done", "--date", "2026-03-17"], monkeypatch)
     plan = load_plan("2026-03-17")
     assert plan.tasks["music"][0]["done"] is True
+
+
+def test_stack_shortcut_done(day_env, monkeypatch):
+    _run(day_env, ["init", "--date", "2026-03-17"], monkeypatch)
+    out = _run(day_env, ["stack", "1", "done", "--date", "2026-03-17"], monkeypatch)
+    assert "Completed" in out
+    plan = load_plan("2026-03-17")
+    assert plan.tasks["stack"][0]["done"] is True
 
 
 # ---------------------------------------------------------------------------

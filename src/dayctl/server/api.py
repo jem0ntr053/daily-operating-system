@@ -12,7 +12,7 @@ from dayctl.storage import delete_plan, list_days, load_plan, save_plan
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
-Category = Literal["app", "music", "code", "youtube", "marketing", "social"]
+Category = Literal["app", "music", "code", "youtube", "marketing", "social", "stack"]
 
 _AREA_ALIAS = {"app": "code"}
 
@@ -73,6 +73,19 @@ def toggle_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Categ
     tasks[idx]["done"] = not tasks[idx]["done"]
     save_plan(plan)
     return plan.to_dict()
+
+
+@router.post("/days/{day}/tasks/{cat}/advance")
+def advance_task(day: str = Path(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), cat: Category = ...) -> dict:
+    """Mark the first incomplete task in an area done — a stable one-tap 'next step'."""
+    plan = load_plan(day)
+    area = _resolve_area(cat)
+    for t in plan.tasks.get(area, []):
+        if not t["done"]:
+            t["done"] = True
+            save_plan(plan)
+            return {"advanced": t["text"], "plan": plan.to_dict()}
+    return {"advanced": None, "plan": plan.to_dict()}
 
 
 @router.delete("/days/{day}")

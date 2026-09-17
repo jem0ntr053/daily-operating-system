@@ -9,9 +9,11 @@ import httpx
 log = logging.getLogger(__name__)
 
 
-def post_ntfy(topic: str, title: str, body: str, priority: str = "default") -> None:
+def post_ntfy(topic: str, title: str, body: str, priority: str = "default", actions: str | None = None) -> None:
     """POST to ntfy topic. Failures are logged and swallowed."""
     headers = {"Title": title, "Priority": priority}
+    if actions:
+        headers["Actions"] = actions
     auth = os.environ.get("NTFY_AUTH")
     if auth:
         headers["Authorization"] = f"Bearer {auth}"

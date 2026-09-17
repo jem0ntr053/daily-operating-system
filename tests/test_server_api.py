@@ -50,6 +50,32 @@ def test_toggle_app_task(client):
     assert r.json()["tasks"]["code"][0]["done"] is True
 
 
+def test_toggle_stack_task(client):
+    client.get("/api/days/2026-04-12", headers=AUTH)  # create
+    r = client.post("/api/days/2026-04-12/tasks/stack/0/toggle", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["tasks"]["stack"][0]["done"] is True
+
+
+def test_advance_marks_first_incomplete_stack_task(client):
+    plan = client.get("/api/days/2026-04-12", headers=AUTH).json()  # create
+    first_text = plan["tasks"]["stack"][0]["text"]
+
+    r = client.post("/api/days/2026-04-12/tasks/stack/advance", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["advanced"] == first_text
+    assert r.json()["plan"]["tasks"]["stack"][0]["done"] is True
+
+
+def test_advance_returns_null_when_all_done(client):
+    client.get("/api/days/2026-04-12", headers=AUTH)  # create
+    for _ in range(7):  # DEFAULT_TASKS["stack"] has 7 items
+        client.post("/api/days/2026-04-12/tasks/stack/advance", headers=AUTH)
+    r = client.post("/api/days/2026-04-12/tasks/stack/advance", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["advanced"] is None
+
+
 def test_add_app_task(client):
     r = client.post(
         "/api/days/2026-04-12/tasks/app",

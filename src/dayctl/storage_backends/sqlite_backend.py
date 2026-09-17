@@ -39,9 +39,7 @@ class SQLiteBackend:
             "SELECT json FROM plans WHERE date = ?", (day_str,)
         ).fetchone()
         if row is None:
-            plan = DayPlan.new(day_str)
-            self.save_plan(plan)
-            return plan
+            raise KeyError(day_str)
         return DayPlan.from_dict(json.loads(row[0]))
 
     def save_plan(self, plan: DayPlan) -> None:
